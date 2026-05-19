@@ -19,9 +19,9 @@ Web app quản lý bán trú học sinh tiểu học bằng Next.js App Router, 
 Có thể dùng project hiện có:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://aljycybkwxjvwzaipmjw.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_Q7hJe-L-LZ-BmAVsCxDyDA_L-yHA9MK
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_Q7hJe-L-LZ-BmAVsCxDyDA_L-yHA9MK
+NEXT_PUBLIC_SUPABASE_URL=https://aljycybkwxjywzaipmjw.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-key
 ```
 
 Lấy `SUPABASE_SERVICE_ROLE_KEY` trong Supabase Dashboard > Project Settings > API. Key này chỉ dùng server-side, không prefix `NEXT_PUBLIC_`.
@@ -31,9 +31,9 @@ Lấy `SUPABASE_SERVICE_ROLE_KEY` trong Supabase Dashboard > Project Settings > 
 Tạo `.env.local` từ `.env.local.example`:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://aljycybkwxjvwzaipmjw.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_Q7hJe-L-LZ-BmAVsCxDyDA_L-yHA9MK
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_Q7hJe-L-LZ-BmAVsCxDyDA_L-yHA9MK
+NEXT_PUBLIC_SUPABASE_URL=https://aljycybkwxjywzaipmjw.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
