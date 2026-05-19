@@ -1,0 +1,88 @@
+export type AppRole = "admin" | "manager" | "parent";
+export type RecordStatus = "active" | "inactive";
+export type AttendanceStatus = "present" | "excused_absent" | "unexcused_absent" | "not_marked";
+export type OffRequestStatus = "auto_approved" | "pending" | "approved" | "rejected" | "cancelled";
+export type PasswordResetStatus = "pending" | "resolved" | "rejected";
+
+export type Profile = {
+  id: string;
+  auth_user_id: string;
+  role: AppRole;
+  full_name: string;
+  phone: string | null;
+  email: string | null;
+  status: RecordStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Parent = {
+  id: string;
+  profile_id: string | null;
+  auth_user_id: string | null;
+  full_name: string | null;
+  username: string;
+  username_normalized: string;
+  phone: string | null;
+  email: string | null;
+  internal_auth_email: string;
+  status: RecordStatus;
+  profile_completed: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Student = {
+  id: string;
+  parent_id: string;
+  full_name: string;
+  nickname: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
+  school_name: string | null;
+  class_name: string | null;
+  health_notes: string | null;
+  allergy_notes: string | null;
+  pickup_notes: string | null;
+  status: RecordStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AttendanceRecord = {
+  id: string;
+  student_id: string;
+  attendance_date: string;
+  status: AttendanceStatus;
+  note: string | null;
+  marked_by: string | null;
+  marked_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OffRequest = {
+  id: string;
+  student_id: string;
+  parent_id: string;
+  off_date: string;
+  reason: string | null;
+  status: OffRequestStatus;
+  submitted_at: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FeeSetting = {
+  id: string;
+  year_month: string;
+  fee_per_attendance_day: number;
+  currency: string;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
