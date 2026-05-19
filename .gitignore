@@ -13,3 +13,4 @@ vercel
 .vercel
 *.tsbuildinfo
 supabase/.temp/
+vercel-env.txt
