@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/permissions";
-import { bulkAttendanceSchema, markAttendanceSchema } from "@/lib/validators/attendance";
+import { attendanceStatusSchema, bulkAttendanceSchema, markAttendanceSchema } from "@/lib/validators/attendance";
 import { redirectWithMessage } from "@/lib/auth/messages";
 
 function attendancePath(formData: FormData) {
@@ -42,6 +42,54 @@ export async function markAttendanceAction(formData: FormData) {
 
   revalidatePath(path.split("?")[0] || path);
   redirectWithMessage(path, "success", "Đã cập nhật điểm danh");
+}
+
+export async function saveAttendanceBatchAction(formData: FormData) {
+  const profile = await requireRole(["admin", "manager"]);
+  const path = attendancePath(formData);
+  const attendanceDate = formData.get("attendance_date");
+
+  if (typeof attendanceDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(attendanceDate)) {
+    redirectWithMessage(path, "error", "Ngày điểm danh không hợp lệ");
+  }
+
+  const studentIds = Array.from(new Set(formData.getAll("student_id").filter((value): value is string => typeof value === "string")));
+  const rows = [];
+
+  for (const studentId of studentIds) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(studentId)) {
+      redirectWithMessage(path, "error", "Danh sách học sinh không hợp lệ");
+    }
+
+    const status = formData.get(`status_${studentId}`);
+    const note = formData.get(`note_${studentId}`);
+    const parsedStatus = attendanceStatusSchema.safeParse(status);
+
+    if (!parsedStatus.success) {
+      redirectWithMessage(path, "error", "Vui lòng chọn trạng thái cho tất cả học sinh hiển thị");
+    }
+
+    rows.push({
+      student_id: studentId,
+      attendance_date: attendanceDate,
+      status: parsedStatus.data,
+      note: typeof note === "string" && note.trim() ? note.trim() : null,
+      marked_by: profile.id,
+      marked_at: new Date().toISOString(),
+    });
+  }
+
+  if (rows.length === 0) {
+    redirectWithMessage(path, "error", "Không có học sinh nào để lưu điểm danh");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("attendance_records").upsert(rows, { onConflict: "student_id,attendance_date" });
+
+  if (error) redirectWithMessage(path, "error", "Không lưu được điểm danh");
+
+  revalidatePath(path.split("?")[0] || path);
+  redirectWithMessage(path, "success", `Đã lưu điểm danh cho ${rows.length} học sinh`);
 }
 
 export async function bulkMarkPresentAction(formData: FormData) {
