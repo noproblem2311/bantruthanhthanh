@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useTransition } from "react";
 import type { AnchorHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
@@ -19,15 +19,16 @@ export function PendingLink({
   href: string;
   showSpinner?: boolean;
 }) {
+  const router = useRouter();
   const pathname = usePathname();
-  const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const hrefPath = href.startsWith("/") ? href.split("?")[0] : href;
-  const isPending = pendingHref === href && hrefPath !== pathname;
+  const [isPending, startTransition] = useTransition();
+  const hrefPath = href.startsWith("/") ? href.split(/[?#]/)[0] : href;
+  const showPending = isPending && hrefPath !== pathname;
 
   return (
     <Link
       href={href}
-      aria-busy={isPending}
+      aria-busy={showPending}
       onClick={(event) => {
         onClick?.(event);
         if (
@@ -39,21 +40,23 @@ export function PendingLink({
           target === "_blank" ||
           href.startsWith("#") ||
           href.startsWith("http") ||
+          !href.startsWith("/") ||
           hrefPath === pathname
         ) {
           return;
         }
-        setPendingHref(href);
+        event.preventDefault();
+        startTransition(() => router.push(href));
       }}
       target={target}
       className={cn(
         "transition-all duration-200 ease-out hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]",
-        isPending && "pointer-events-none opacity-80",
+        showPending && "opacity-80",
         className,
       )}
       {...props}
     >
-      {showSpinner && isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+      {showSpinner && showPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
       {children}
     </Link>
   );
