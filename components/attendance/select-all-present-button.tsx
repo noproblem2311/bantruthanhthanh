@@ -8,6 +8,7 @@ export function SelectAllPresentButton({ formId }: { formId: string }) {
     <Button
       type="button"
       variant="secondary"
+      className="w-full sm:w-auto"
       onClick={() => {
         const form = document.getElementById(formId);
         if (!form) return;

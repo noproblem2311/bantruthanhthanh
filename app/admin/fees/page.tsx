@@ -71,7 +71,7 @@ export default async function AdminFeesPage({ searchParams }: { searchParams: Se
         <a
           href={`data:text/csv;charset=utf-8,${encodeURIComponent(`\uFEFF${csv}`)}`}
           download={`phi-ban-tru-${yearMonth}.csv`}
-          className="inline-flex h-10 items-center justify-center rounded-md border bg-white px-4 text-sm font-medium transition hover:bg-muted/70"
+          className="inline-flex min-h-10 w-full items-center justify-center rounded-md border bg-white px-4 py-2 text-center text-sm font-medium transition hover:bg-muted/70 sm:w-auto"
         >
           Export CSV
         </a>

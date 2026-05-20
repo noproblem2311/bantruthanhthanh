@@ -64,7 +64,7 @@ export default async function ParentDetailPage({ params, searchParams }: PagePro
                   <Input id="email" name="email" type="email" defaultValue={parent.email || ""} />
                 </div>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3 text-sm text-muted-foreground">
+              <div className="break-all rounded-lg bg-slate-50 p-3 text-sm text-muted-foreground">
                 Internal auth email: <span className="font-mono">{parent.internal_auth_email}</span>
               </div>
               <SubmitButton>Lưu phụ huynh</SubmitButton>

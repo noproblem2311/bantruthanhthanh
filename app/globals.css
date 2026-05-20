@@ -24,8 +24,13 @@
   border-color: hsl(var(--border));
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   min-height: 100vh;
+  overflow-x: hidden;
   background:
     linear-gradient(180deg, rgba(236, 253, 245, 0.72), rgba(248, 250, 252, 0.94) 42%),
     hsl(var(--background));
@@ -48,6 +53,12 @@ textarea {
 }
 
 .container-page {
-  width: min(1180px, calc(100% - 32px));
+  width: min(1180px, calc(100% - 24px));
   margin-inline: auto;
+}
+
+@media (min-width: 640px) {
+  .container-page {
+    width: min(1180px, calc(100% - 32px));
+  }
 }

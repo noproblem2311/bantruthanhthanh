@@ -26,7 +26,7 @@ export default async function ManagerOffRequestsPage({ searchParams }: { searchP
         <CardTitle>Đơn xin nghỉ trong ngày</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form className="flex max-w-xs items-end gap-2">
+        <form className="grid max-w-xs gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="grid flex-1 gap-2">
             <Label htmlFor="date">Ngày</Label>
             <Input id="date" name="date" type="date" defaultValue={date} />

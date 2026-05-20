@@ -25,7 +25,7 @@ export function ResetPasswordForm({ parentId, requestId }: { parentId: string; r
       </form>
       {state.message ? <Alert variant={state.ok ? "success" : "error"}>{state.message}</Alert> : null}
       {state.ok && state.credentials ? (
-        <div className="rounded-lg border bg-slate-50 p-3 font-mono text-sm">
+        <div className="break-all rounded-lg border bg-slate-50 p-3 font-mono text-sm">
           <p>Username: {state.credentials.username}</p>
           <p>Mật khẩu: {state.credentials.password}</p>
         </div>

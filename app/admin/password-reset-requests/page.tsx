@@ -34,7 +34,7 @@ export default async function PasswordResetRequestsPage({ searchParams }: { sear
           <CardTitle>Yêu cầu cấp lại mật khẩu</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="flex max-w-xs items-end gap-2">
+          <form className="grid max-w-xs gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
             <div className="grid flex-1 gap-2">
               <Label htmlFor="status">Trạng thái</Label>
               <Select id="status" name="status" defaultValue={status}>

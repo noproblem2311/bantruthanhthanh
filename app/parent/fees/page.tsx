@@ -27,7 +27,7 @@ export default async function ParentFeesPage({ searchParams }: { searchParams: S
         <CardTitle>Phí bán trú tháng</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form className="flex max-w-xs items-end gap-2">
+        <form className="grid max-w-xs gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="grid flex-1 gap-2">
             <Label htmlFor="month">Chọn tháng</Label>
             <Input id="month" name="month" type="month" defaultValue={yearMonth} />
@@ -57,7 +57,7 @@ export default async function ParentFeesPage({ searchParams }: { searchParams: S
             ))}
           </TBody>
         </Table>
-        <div className="rounded-lg bg-primary/10 p-4 text-right">
+        <div className="rounded-lg bg-primary/10 p-4 text-left sm:text-right">
           <p className="text-sm text-muted-foreground">Tổng phí phụ huynh trong tháng</p>
           <p className="text-2xl font-semibold text-primary">{feeSetting ? formatCurrency(total) : "Chưa tính"}</p>
         </div>

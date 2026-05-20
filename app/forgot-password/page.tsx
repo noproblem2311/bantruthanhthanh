@@ -39,7 +39,7 @@ export default async function ForgotPasswordPage({ searchParams }: { searchParam
                 <Label htmlFor="note">Ghi chú</Label>
                 <Textarea id="note" name="note" placeholder="Ví dụ: Tôi là phụ huynh của bé Minh..." />
               </div>
-              <SubmitButton>Gửi yêu cầu</SubmitButton>
+              <SubmitButton className="w-full">Gửi yêu cầu</SubmitButton>
             </form>
             <Link href="/login" className="mt-4 inline-block text-sm font-medium text-primary">
               Quay lại đăng nhập

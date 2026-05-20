@@ -15,9 +15,9 @@ export function StatCard({
   return (
     <Card>
       <CardContent className="flex items-start justify-between gap-4 p-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="mt-2 text-2xl font-semibold">{value}</p>
+          <p className="mt-2 break-words text-xl font-semibold sm:text-2xl">{value}</p>
           {description ? <p className="mt-1 text-xs text-muted-foreground">{description}</p> : null}
         </div>
         {Icon ? (

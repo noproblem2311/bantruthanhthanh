@@ -33,7 +33,7 @@ export default async function ParentAttendancePage({ searchParams }: { searchPar
         <CardTitle>Lịch sử điểm danh</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form className="flex max-w-xs items-end gap-2">
+        <form className="grid max-w-xs gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="grid flex-1 gap-2">
             <Label htmlFor="month">Chọn tháng</Label>
             <Input id="month" name="month" type="month" defaultValue={yearMonth} />

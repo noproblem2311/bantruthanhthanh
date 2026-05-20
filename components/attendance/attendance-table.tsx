@@ -18,6 +18,62 @@ export type AttendanceStudent = Student & {
   } | null;
 };
 
+const statusOptions: Array<{ value: AttendanceStatus; label: string; icon: typeof UserCheck; className: string }> = [
+  { value: "present", label: "Có mặt", icon: UserCheck, className: "has-[:checked]:border-emerald-400 has-[:checked]:bg-emerald-50" },
+  { value: "excused_absent", label: "Có phép", icon: UserMinus, className: "has-[:checked]:border-sky-400 has-[:checked]:bg-sky-50" },
+  { value: "unexcused_absent", label: "Không phép", icon: UserX, className: "has-[:checked]:border-red-400 has-[:checked]:bg-red-50" },
+  { value: "not_marked", label: "Chưa", icon: RotateCcw, className: "has-[:checked]:border-slate-400 has-[:checked]:bg-slate-50" },
+];
+
+function AttendanceHiddenFields({ date, redirectTo }: { date: string; redirectTo: string }) {
+  return (
+    <>
+      <input type="hidden" name="attendance_date" value={date} />
+      <input type="hidden" name="redirect_to" value={redirectTo} />
+    </>
+  );
+}
+
+function AttendanceActions({ formId }: { formId: string }) {
+  return (
+    <div className="grid gap-2 sm:flex sm:flex-wrap sm:justify-end">
+      <SelectAllPresentButton formId={formId} />
+      <SubmitButton pendingText="Đang lưu..." className="w-full sm:w-auto">
+        <Save className="h-4 w-4" />
+        Lưu điểm danh
+      </SubmitButton>
+    </div>
+  );
+}
+
+function StatusChoices({ studentId, status, compact = false }: { studentId: string; status: AttendanceStatus; compact?: boolean }) {
+  return (
+    <div className={compact ? "grid grid-cols-2 gap-2" : "grid gap-2 lg:grid-cols-4"}>
+      {statusOptions.map((option) => {
+        const Icon = option.icon;
+        return (
+          <label
+            key={option.value}
+            className={`flex cursor-pointer items-center justify-center gap-2 rounded-md border bg-white px-3 py-2 text-sm font-medium transition hover:-translate-y-0.5 hover:shadow-sm active:translate-y-0 ${option.className}`}
+          >
+            <input
+              type="radio"
+              name={`status_${studentId}`}
+              value={option.value}
+              defaultChecked={status === option.value}
+              data-status-value={option.value}
+              data-current-status={status}
+              className="h-4 w-4 shrink-0 accent-primary"
+            />
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 truncate">{option.label}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
 export function AttendanceTable({
   date,
   students,
@@ -35,18 +91,63 @@ export function AttendanceTable({
 }) {
   const recordMap = new Map(records.map((record) => [record.student_id, record]));
   const formId = `attendance-batch-${date}`;
-  const statusOptions: Array<{ value: AttendanceStatus; label: string; icon: typeof UserCheck; className: string }> = [
-    { value: "present", label: "Có mặt", icon: UserCheck, className: "has-[:checked]:border-emerald-400 has-[:checked]:bg-emerald-50" },
-    { value: "excused_absent", label: "Có phép", icon: UserMinus, className: "has-[:checked]:border-sky-400 has-[:checked]:bg-sky-50" },
-    { value: "unexcused_absent", label: "Không phép", icon: UserX, className: "has-[:checked]:border-red-400 has-[:checked]:bg-red-50" },
-    { value: "not_marked", label: "Chưa", icon: RotateCcw, className: "has-[:checked]:border-slate-400 has-[:checked]:bg-slate-50" },
-  ];
+  const mobileFormId = `${formId}-mobile`;
+  const desktopFormId = `${formId}-desktop`;
 
   return (
-    <Card>
-      <form id={formId} action={saveAttendanceBatchAction}>
-        <input type="hidden" name="attendance_date" value={date} />
-        <input type="hidden" name="redirect_to" value={redirectTo} />
+    <>
+      <Card className="md:hidden">
+        <form id={mobileFormId} action={saveAttendanceBatchAction}>
+          <AttendanceHiddenFields date={date} redirectTo={redirectTo} />
+          <CardHeader className="space-y-3">
+            <div>
+              <CardTitle>{title}</CardTitle>
+              <CardDescription>
+                Ngày {formatVietnamDate(date)}. Chọn trạng thái cho từng học sinh, sau đó lưu một lần.
+              </CardDescription>
+            </div>
+            <AttendanceActions formId={mobileFormId} />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {students.map((student) => {
+              const record = recordMap.get(student.id);
+              const status = (record?.status || "not_marked") as AttendanceStatus;
+              const hasApprovedOff = approvedOffStudentIds.has(student.id);
+
+              return (
+                <div key={student.id} className="rounded-lg border bg-white p-3">
+                  <input type="hidden" name="student_id" value={student.id} />
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium">{student.full_name}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {student.class_name || "Chưa có lớp"} · {student.parents?.full_name || student.parents?.username || "Chưa có PH"}
+                        </p>
+                        {student.parents?.phone ? <p className="text-xs text-muted-foreground">{student.parents.phone}</p> : null}
+                      </div>
+                      <Badge variant={attendanceBadgeVariant(status)}>{attendanceLabels[status]}</Badge>
+                    </div>
+                    {hasApprovedOff ? <Badge variant="info">Đã xin nghỉ</Badge> : null}
+                    <StatusChoices studentId={student.id} status={status} compact />
+                    <Textarea name={`note_${student.id}`} defaultValue={record?.note || ""} className="min-h-16" placeholder="Ghi chú ngắn" />
+                  </div>
+                </div>
+              );
+            })}
+            {students.length === 0 ? <div className="p-4 text-center text-sm text-muted-foreground">Không có học sinh phù hợp.</div> : null}
+            {students.length > 0 ? (
+              <div className="border-t pt-4">
+                <AttendanceActions formId={mobileFormId} />
+              </div>
+            ) : null}
+          </CardContent>
+        </form>
+      </Card>
+
+      <Card className="hidden md:block">
+        <form id={desktopFormId} action={saveAttendanceBatchAction}>
+          <AttendanceHiddenFields date={date} redirectTo={redirectTo} />
         <CardHeader className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <CardTitle>{title}</CardTitle>
@@ -54,13 +155,7 @@ export function AttendanceTable({
               Ngày {formatVietnamDate(date)}. Chọn trạng thái cho từng học sinh, sau đó lưu một lần. Chỉ “Có mặt” mới được tính phí.
             </CardDescription>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <SelectAllPresentButton formId={formId} />
-            <SubmitButton pendingText="Đang lưu...">
-              <Save className="h-4 w-4" />
-              Lưu điểm danh
-            </SubmitButton>
-          </div>
+          <AttendanceActions formId={desktopFormId} />
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -95,29 +190,7 @@ export function AttendanceTable({
                     </TD>
                     <TD className="min-w-[440px]">
                       <input type="hidden" name="student_id" value={student.id} />
-                      <div className="grid gap-2 sm:grid-cols-4">
-                        {statusOptions.map((option) => {
-                          const Icon = option.icon;
-                          return (
-                            <label
-                              key={option.value}
-                              className={`flex cursor-pointer items-center justify-center gap-2 rounded-md border bg-white px-3 py-2 text-sm font-medium transition hover:-translate-y-0.5 hover:shadow-sm active:translate-y-0 ${option.className}`}
-                            >
-                              <input
-                                type="radio"
-                                name={`status_${student.id}`}
-                                value={option.value}
-                                defaultChecked={status === option.value}
-                                data-status-value={option.value}
-                                data-current-status={status}
-                                className="h-4 w-4 accent-primary"
-                              />
-                              <Icon className="h-4 w-4" />
-                              {option.label}
-                            </label>
-                          );
-                        })}
-                      </div>
+                      <StatusChoices studentId={student.id} status={status} />
                     </TD>
                     <TD className="min-w-[220px]">
                       <Textarea name={`note_${student.id}`} defaultValue={record?.note || ""} className="min-h-16" placeholder="Ghi chú ngắn" />
@@ -130,7 +203,7 @@ export function AttendanceTable({
           {students.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Không có học sinh phù hợp.</div> : null}
           {students.length > 0 ? (
             <div className="flex justify-end border-t bg-white p-4">
-              <SubmitButton pendingText="Đang lưu...">
+              <SubmitButton pendingText="Đang lưu..." className="w-full sm:w-auto">
                 <Save className="h-4 w-4" />
                 Lưu điểm danh
               </SubmitButton>
@@ -139,5 +212,6 @@ export function AttendanceTable({
         </CardContent>
       </form>
     </Card>
+    </>
   );
 }

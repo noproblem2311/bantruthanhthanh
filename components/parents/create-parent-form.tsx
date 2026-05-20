@@ -71,11 +71,15 @@ export function CreateParentForm() {
           {state.ok && state.credentials ? (
             <div className="space-y-4">
               <Alert variant="success">{state.message}</Alert>
-              <div className="rounded-lg border bg-slate-50 p-4 font-mono text-sm">
+              <div className="rounded-lg border bg-slate-50 p-4 font-mono text-sm break-all">
                 <p>Username: {state.credentials.username}</p>
                 <p>Mật khẩu: {state.credentials.password}</p>
               </div>
-              {state.parentId ? <ButtonLink href={`/admin/parents/${state.parentId}`}>Mở hồ sơ phụ huynh</ButtonLink> : null}
+              {state.parentId ? (
+                <ButtonLink href={`/admin/parents/${state.parentId}`} className="w-full sm:w-auto">
+                  Mở hồ sơ phụ huynh
+                </ButtonLink>
+              ) : null}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">

@@ -40,7 +40,7 @@ export default async function AdminParentsPage({ searchParams }: { searchParams:
           <CardTitle>Tìm kiếm</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="flex max-w-lg items-end gap-2">
+          <form className="grid max-w-lg gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
             <div className="grid flex-1 gap-2">
               <Label htmlFor="q">Tên, username, số điện thoại</Label>
               <Input id="q" name="q" defaultValue={q} />

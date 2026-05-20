@@ -17,11 +17,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="container-page flex min-h-screen flex-col justify-center py-10">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <Link href="/" className="text-lg font-semibold text-primary">
+        <div className="mb-8 flex items-center justify-between gap-3">
+          <Link href="/" className="min-w-0 truncate text-lg font-semibold text-primary">
             Bán trú Learning Hub
           </Link>
-          <ButtonLink href="/" variant="outline">
+          <ButtonLink href="/" variant="outline" size="sm" className="shrink-0 sm:min-h-10 sm:px-4">
             Trang chủ
           </ButtonLink>
         </div>
@@ -49,7 +49,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
                   <Label htmlFor="parent_password">Mật khẩu</Label>
                   <Input id="parent_password" name="password" type="password" autoComplete="current-password" required />
                 </div>
-                <SubmitButton>
+                <SubmitButton className="w-full">
                   <LockKeyhole className="h-4 w-4" />
                   Đăng nhập phụ huynh
                 </SubmitButton>
@@ -78,7 +78,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
                   <Label htmlFor="staff_password">Mật khẩu</Label>
                   <Input id="staff_password" name="password" type="password" autoComplete="current-password" required />
                 </div>
-                <SubmitButton variant="secondary">
+                <SubmitButton variant="secondary" className="w-full">
                   <LockKeyhole className="h-4 w-4" />
                   Đăng nhập nội bộ
                 </SubmitButton>

@@ -82,9 +82,9 @@ export function StudentForm({ student, parents }: { student?: Student; parents: 
               <Textarea id="pickup_notes" name="pickup_notes" defaultValue={student?.pickup_notes || ""} />
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <SubmitButton>{student ? "Lưu học sinh" : "Tạo học sinh"}</SubmitButton>
-            <ButtonLink href="/admin/students" variant="outline">
+          <div className="grid gap-2 sm:flex sm:flex-wrap">
+            <SubmitButton className="w-full sm:w-auto">{student ? "Lưu học sinh" : "Tạo học sinh"}</SubmitButton>
+            <ButtonLink href="/admin/students" variant="outline" className="w-full sm:w-auto">
               Quay lại
             </ButtonLink>
           </div>

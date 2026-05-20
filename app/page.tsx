@@ -34,14 +34,14 @@ export default async function HomePage() {
         />
         <div className="absolute inset-0 bg-slate-950/50" />
         <div className="container-page relative flex min-h-[82vh] flex-col justify-between py-6 text-white">
-          <header className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 font-semibold">
+          <header className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2 font-semibold">
               <span className="grid h-9 w-9 place-items-center rounded-md bg-white text-primary">
                 <BookOpenCheck className="h-5 w-5" />
               </span>
-              {centerName}
+              <span className="truncate">{centerName}</span>
             </div>
-            <ButtonLink href="/login" variant="secondary">
+            <ButtonLink href="/login" variant="secondary" size="sm" className="shrink-0 sm:min-h-10 sm:px-4">
               Đăng nhập
             </ButtonLink>
           </header>
@@ -49,12 +49,12 @@ export default async function HomePage() {
             <p className="text-sm font-semibold uppercase tracking-wide text-emerald-100">Bán trú học tập cho học sinh tiểu học</p>
             <h1 className="mt-4 text-4xl font-semibold tracking-normal sm:text-6xl">{centerName}</h1>
             <p className="mt-5 max-w-2xl text-lg text-slate-100">{description}</p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href="#contact" size="lg">
+            <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
+              <ButtonLink href="#contact" size="lg" className="w-full sm:w-auto">
                 <Phone className="h-5 w-5" />
                 Liên hệ tư vấn
               </ButtonLink>
-              <ButtonLink href="/login" size="lg" variant="outline" className="border-white/60 bg-white/10 text-white hover:bg-white/20">
+              <ButtonLink href="/login" size="lg" variant="outline" className="w-full border-white/60 bg-white/10 text-white hover:bg-white/20 sm:w-auto">
                 Theo dõi bán trú
               </ButtonLink>
             </div>

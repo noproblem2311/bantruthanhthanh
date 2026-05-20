@@ -16,10 +16,10 @@ const variants = {
 };
 
 const sizes = {
-  sm: "h-9 gap-1.5 px-3 text-sm",
-  md: "h-10 gap-2 px-4 text-sm",
-  lg: "h-11 gap-2 px-5 text-base",
-  icon: "h-10 w-10 p-0",
+  sm: "min-h-9 gap-1.5 px-3 py-2 text-sm",
+  md: "min-h-10 gap-2 px-4 py-2 text-sm",
+  lg: "min-h-11 gap-2 px-5 py-2.5 text-base",
+  icon: "h-10 w-10 shrink-0 p-0",
 };
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -32,6 +32,7 @@ export function Button({ className, variant = "primary", size = "md", ...props }
     <button
       className={cn(
         "inline-flex items-center justify-center rounded-md font-medium transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "max-w-full text-center leading-snug",
         variants[variant],
         sizes[size],
         className,
@@ -80,6 +81,7 @@ export function ButtonLink({ className, variant = "primary", size = "md", href, 
       target={target}
       className={cn(
         "inline-flex items-center justify-center rounded-md font-medium transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "max-w-full text-center leading-snug",
         variants[variant],
         sizes[size],
         showPending && "opacity-80",

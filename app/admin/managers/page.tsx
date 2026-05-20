@@ -77,9 +77,9 @@ export default async function AdminManagersPage({ searchParams }: { searchParams
                     <Badge variant={manager.status === "active" ? "success" : "muted"}>{statusLabels[manager.status]}</Badge>
                   </TD>
                   <TD>
-                    <form action={updateManagerStatusAction} className="flex gap-2">
+                    <form action={updateManagerStatusAction} className="grid min-w-[220px] gap-2 sm:grid-cols-[1fr_auto]">
                       <input type="hidden" name="profile_id" value={manager.id} />
-                      <Select name="status" defaultValue={manager.status} className="max-w-40">
+                      <Select name="status" defaultValue={manager.status}>
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                       </Select>
