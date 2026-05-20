@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -37,7 +38,7 @@ export default async function ParentAttendancePage({ searchParams }: { searchPar
             <Label htmlFor="month">Chọn tháng</Label>
             <Input id="month" name="month" type="month" defaultValue={yearMonth} />
           </div>
-          <button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-white">Xem</button>
+          <SubmitButton pendingText="Đang xem...">Xem</SubmitButton>
         </form>
         <Table>
           <THead>

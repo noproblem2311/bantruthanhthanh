@@ -60,7 +60,7 @@ export default async function AdminOffRequestsPage({ searchParams }: { searchPar
                 <option value="cancelled">Đã hủy</option>
               </Select>
             </div>
-            <button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-white">Lọc</button>
+            <SubmitButton pendingText="Đang lọc...">Lọc</SubmitButton>
           </form>
         </CardContent>
       </Card>

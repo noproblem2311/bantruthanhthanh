@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageMessage } from "@/components/ui/message";
 import { Select } from "@/components/ui/select";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { createClient } from "@/lib/supabase/server";
 import { getVietnamToday } from "@/lib/date";
 import { getMessageParam } from "@/lib/utils";
@@ -65,7 +66,7 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
                 <option value="unexcused_absent">Vắng không phép</option>
               </Select>
             </div>
-            <button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-white">Lọc</button>
+            <SubmitButton pendingText="Đang lọc...">Lọc</SubmitButton>
           </form>
         </CardContent>
       </Card>

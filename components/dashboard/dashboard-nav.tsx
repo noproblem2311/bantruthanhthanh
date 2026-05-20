@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarCheck,
@@ -14,6 +13,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PendingLink } from "@/components/ui/pending-link";
 
 export type NavItem = {
   href: string;
@@ -42,17 +42,17 @@ export function DashboardNav({ items }: { items: NavItem[] }) {
         const Icon = icons[item.icon] || KeyRound;
         const active = pathname === item.href || (item.href !== "/admin" && item.href !== "/parent" && item.href !== "/manager" && pathname.startsWith(item.href));
         return (
-          <Link
+          <PendingLink
             key={item.href}
             href={item.href}
             className={cn(
-              "flex min-w-max items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition",
+              "flex min-w-max items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:shadow-sm",
               active ? "bg-primary text-white" : "text-slate-600 hover:bg-muted",
             )}
           >
             <Icon className="h-4 w-4" />
             {item.label}
-          </Link>
+          </PendingLink>
         );
       })}
     </nav>

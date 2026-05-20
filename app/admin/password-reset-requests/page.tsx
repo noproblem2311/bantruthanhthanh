@@ -44,7 +44,7 @@ export default async function PasswordResetRequestsPage({ searchParams }: { sear
                 <option value="all">Tất cả</option>
               </Select>
             </div>
-            <button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-white">Lọc</button>
+            <SubmitButton pendingText="Đang lọc...">Lọc</SubmitButton>
           </form>
         </CardContent>
       </Card>

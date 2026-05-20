@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { formatVietnamDate, formatVietnamDateTime, getVietnamToday } from "@/lib/date";
@@ -30,7 +31,7 @@ export default async function ManagerOffRequestsPage({ searchParams }: { searchP
             <Label htmlFor="date">Ngày</Label>
             <Input id="date" name="date" type="date" defaultValue={date} />
           </div>
-          <button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-white">Xem</button>
+          <SubmitButton pendingText="Đang xem...">Xem</SubmitButton>
         </form>
         <Table>
           <THead>

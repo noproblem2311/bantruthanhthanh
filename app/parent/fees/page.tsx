@@ -2,6 +2,7 @@ import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { calculateMonthlyFee, getFeeSetting } from "@/lib/fees";
@@ -31,7 +32,7 @@ export default async function ParentFeesPage({ searchParams }: { searchParams: S
             <Label htmlFor="month">Chọn tháng</Label>
             <Input id="month" name="month" type="month" defaultValue={yearMonth} />
           </div>
-          <button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-white">Xem</button>
+          <SubmitButton pendingText="Đang xem...">Xem</SubmitButton>
         </form>
         {!feeSetting ? <Alert variant="warning">Admin chưa cấu hình phí tháng này.</Alert> : null}
         <Table>

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageMessage } from "@/components/ui/message";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { getMessageParam } from "@/lib/utils";
@@ -44,7 +45,7 @@ export default async function AdminParentsPage({ searchParams }: { searchParams:
               <Label htmlFor="q">Tên, username, số điện thoại</Label>
               <Input id="q" name="q" defaultValue={q} />
             </div>
-            <button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-white">Tìm</button>
+            <SubmitButton pendingText="Đang tìm...">Tìm</SubmitButton>
           </form>
         </CardContent>
       </Card>
