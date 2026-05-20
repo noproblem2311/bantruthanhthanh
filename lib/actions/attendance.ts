@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { formatVietnamDate } from "@/lib/date";
 import { requireRole } from "@/lib/permissions";
 import { attendanceStatusSchema, bulkAttendanceSchema, markAttendanceSchema } from "@/lib/validators/attendance";
 import { redirectWithMessage } from "@/lib/auth/messages";
@@ -89,7 +90,7 @@ export async function saveAttendanceBatchAction(formData: FormData) {
   if (error) redirectWithMessage(path, "error", "Không lưu được điểm danh");
 
   revalidatePath(path.split("?")[0] || path);
-  redirectWithMessage(path, "success", `Đã lưu điểm danh cho ${rows.length} học sinh`);
+  redirectWithMessage(path, "success", `Đã lưu điểm danh ngày ${formatVietnamDate(attendanceDate)} cho ${rows.length} học sinh`);
 }
 
 export async function bulkMarkPresentAction(formData: FormData) {

@@ -1,5 +1,6 @@
 import { RotateCcw, Save, UserCheck, UserMinus, UserX } from "lucide-react";
 import { saveAttendanceBatchAction } from "@/lib/actions/attendance";
+import { formatVietnamDate } from "@/lib/date";
 import { attendanceBadgeVariant, attendanceLabels } from "@/lib/labels";
 import type { AttendanceRecord, AttendanceStatus, Student } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +50,9 @@ export function AttendanceTable({
         <CardHeader className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <CardTitle>{title}</CardTitle>
-            <CardDescription>Chọn trạng thái cho từng học sinh, sau đó lưu một lần. Chỉ “Có mặt” mới được tính phí.</CardDescription>
+            <CardDescription>
+              Ngày {formatVietnamDate(date)}. Chọn trạng thái cho từng học sinh, sau đó lưu một lần. Chỉ “Có mặt” mới được tính phí.
+            </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
             <SelectAllPresentButton formId={formId} />

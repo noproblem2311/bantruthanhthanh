@@ -6,7 +6,7 @@ import { PageMessage } from "@/components/ui/message";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { createClient } from "@/lib/supabase/server";
-import { getVietnamToday } from "@/lib/date";
+import { getDateOrVietnamToday } from "@/lib/date";
 import { getMessageParam } from "@/lib/utils";
 import type { AttendanceRecord, AttendanceStatus } from "@/lib/types";
 
@@ -22,7 +22,7 @@ function buildRedirectTo(date: string, q: string, status: string) {
 
 export default async function AdminAttendancePage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const date = typeof params.date === "string" ? params.date : getVietnamToday();
+  const date = getDateOrVietnamToday(params.date);
   const q = typeof params.q === "string" ? params.q.trim().toLowerCase() : "";
   const status = typeof params.status === "string" ? params.status : "all";
   const supabase = await createClient();
@@ -50,7 +50,7 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
           <form className="grid gap-3 md:grid-cols-[180px_1fr_220px_auto] md:items-end">
             <div className="grid gap-2">
               <Label htmlFor="date">Ngày</Label>
-              <Input id="date" name="date" type="date" defaultValue={date} />
+              <Input id="date" name="date" type="date" defaultValue={date} required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="q">Tìm kiếm</Label>

@@ -42,6 +42,10 @@ export function getVietnamToday(date = new Date()) {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
+export function getDateOrVietnamToday(value: string | string[] | undefined) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : getVietnamToday();
+}
+
 export function getYearMonth(date: string | Date = new Date()) {
   if (typeof date === "string") return date.slice(0, 7);
   const parts = getParts(date);
