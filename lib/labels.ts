@@ -1,4 +1,4 @@
-import type { AttendanceStatus, OffRequestStatus } from "@/lib/types";
+import type { AttendanceStatus, BoardingPackageType, OffRequestStatus } from "@/lib/types";
 
 export const attendanceLabels: Record<string, string> = {
   present: "Có mặt",
@@ -24,6 +24,11 @@ export const passwordResetLabels: Record<string, string> = {
 export const statusLabels: Record<string, string> = {
   active: "Đang hoạt động",
   inactive: "Ngưng hoạt động",
+};
+
+export const boardingPackageLabels: Record<BoardingPackageType, string> = {
+  weekday: "Không thứ 7",
+  saturday: "Có thứ 7",
 };
 
 export function attendanceBadgeVariant(status: AttendanceStatus) {

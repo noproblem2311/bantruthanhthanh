@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { formatVietnamDate } from "@/lib/date";
+import { boardingPackageLabels } from "@/lib/labels";
 
 export default async function ParentChildrenPage() {
   const supabase = await createClient();
@@ -20,6 +21,7 @@ export default async function ParentChildrenPage() {
               <TH>Học sinh</TH>
               <TH>Ngày sinh</TH>
               <TH>Trường/Lớp</TH>
+              <TH>Gói bán trú</TH>
               <TH>Ghi chú</TH>
             </tr>
           </THead>
@@ -38,6 +40,7 @@ export default async function ParentChildrenPage() {
                   <p>{child.school_name || "Chưa có trường"}</p>
                   <p className="text-sm text-muted-foreground">{child.class_name || "Chưa có lớp"}</p>
                 </TD>
+                <TD>{boardingPackageLabels[child.boarding_package_type as keyof typeof boardingPackageLabels] || boardingPackageLabels.weekday}</TD>
                 <TD className="max-w-sm">
                   <p>{child.health_notes || child.allergy_notes || child.pickup_notes || "Không có ghi chú"}</p>
                 </TD>

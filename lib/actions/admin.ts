@@ -262,6 +262,7 @@ export async function createStudentAction(formData: FormData) {
       health_notes: parsed.data.health_notes || null,
       allergy_notes: parsed.data.allergy_notes || null,
       pickup_notes: parsed.data.pickup_notes || null,
+      boarding_package_type: parsed.data.boarding_package_type,
       status: parsed.data.status,
     })
     .select("id")
@@ -293,6 +294,7 @@ export async function updateStudentAction(formData: FormData) {
       health_notes: parsed.data.health_notes || null,
       allergy_notes: parsed.data.allergy_notes || null,
       pickup_notes: parsed.data.pickup_notes || null,
+      boarding_package_type: parsed.data.boarding_package_type,
       status: parsed.data.status,
     })
     .eq("id", parsed.data.id);

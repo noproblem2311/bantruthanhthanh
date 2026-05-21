@@ -3,6 +3,7 @@ export type RecordStatus = "active" | "inactive";
 export type AttendanceStatus = "present" | "excused_absent" | "unexcused_absent" | "not_marked";
 export type OffRequestStatus = "auto_approved" | "pending" | "approved" | "rejected" | "cancelled";
 export type PasswordResetStatus = "pending" | "resolved" | "rejected";
+export type BoardingPackageType = "weekday" | "saturday";
 
 export type Profile = {
   id: string;
@@ -44,6 +45,7 @@ export type Student = {
   health_notes: string | null;
   allergy_notes: string | null;
   pickup_notes: string | null;
+  boarding_package_type: BoardingPackageType;
   status: RecordStatus;
   created_at: string;
   updated_at: string;

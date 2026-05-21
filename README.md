@@ -10,7 +10,7 @@ Web app quản lý bán trú học sinh tiểu học bằng Next.js App Router, 
 - Supabase SSR auth cookie bằng `@supabase/ssr`.
 - Middleware phân quyền `/admin`, `/manager`, `/parent`.
 - Admin quản lý phụ huynh, học sinh, manager, điểm danh, đơn xin nghỉ, reset mật khẩu, cấu hình phí, tổng hợp phí CSV, settings.
-- Học phí tháng tính theo 2 gói bán trú: có thứ 7 và không thứ 7. Công thức: `giá gói - ngày nghỉ không tính Chủ nhật * tiền trừ/ngày`.
+- Học phí tháng tính theo gói bán trú đăng ký trên từng học sinh: có thứ 7 hoặc không thứ 7. Công thức: `giá gói - ngày nghỉ không tính Chủ nhật * tiền trừ/ngày`.
 - Manager xem học sinh active, đơn xin nghỉ, điểm danh theo ngày, search/filter, bulk mark present.
 - Parent xem con, cập nhật profile, xin nghỉ trước 06:00 giờ Việt Nam, xem điểm danh và phí tháng.
 - RLS bật cho tất cả bảng app trong `public`.
@@ -55,6 +55,7 @@ Migrations nằm ở:
 supabase/migrations/001_initial_schema.sql
 supabase/migrations/002_fee_packages.sql
 supabase/migrations/003_seed_requested_students.sql
+supabase/migrations/004_student_boarding_package.sql
 ```
 
 File này tạo schema, indexes, helper functions `get_current_role()`, `is_admin()`, `is_manager()`, `is_parent()` và RLS policies.

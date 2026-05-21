@@ -43,36 +43,36 @@ set full_name = coalesce(public.parents.full_name, excluded.full_name),
     status = excluded.status,
     updated_at = now();
 
-with student_rows(full_name, class_name, status, parent_username) as (
+with student_rows(full_name, class_name, status, parent_username, boarding_package_type) as (
   values
-    ('Tú Quỳnh', '1/1', 'active', 'ph-tu-quynh-1-1'),
-    ('Thuỷ Ngân', '1/1', 'active', 'ph-thuy-ngan-1-1'),
-    ('Hoàng Long', '1/1', 'active', 'ph-hoang-long-1-1'),
-    ('Trung Long', '1/2', 'active', 'ph-trung-long-1-2'),
-    ('Đức Phúc', '1/3', 'active', 'ph-duc-phuc-1-3'),
-    ('Đức Thịnh', '1/3', 'active', 'ph-duc-thinh-1-3'),
-    ('Nhật Thành', '1/3', 'active', 'ph-nhat-thanh-1-3'),
-    ('Thuý Diễm', '1/3', 'active', 'ph-thuy-diem-1-3'),
-    ('an Nhiên', '1/3', 'inactive', 'ph-an-nhien-1-3'),
-    ('Bảo Vy', '1/3', 'active', 'ph-bao-vy-1-3'),
-    ('Khánh Hưng', '1/3', 'active', 'ph-khanh-hung-1-3'),
-    ('Nhã Phương', '1/3', 'active', 'ph-nha-phuong-1-3'),
-    ('Minh Khang', '1/4', 'active', 'ph-minh-khang-1-4'),
-    ('Bảo Châu', '2/2', 'active', 'ph-bao-chau-2-2'),
-    ('Hữu Việt', '2/4', 'active', 'ph-huu-viet-2-4'),
-    ('Tấn Phát', '2/4', 'active', 'ph-tan-phat-2-4'),
-    ('Bảo Châu', '2/4', 'active', 'ph-bao-chau-2-4'),
-    ('Tam An', '2/4', 'active', 'ph-tam-an-2-4'),
-    ('Ánh Tuyêt', '3/1', 'active', 'ph-anh-tuyet-3-1'),
-    ('Trúc Liên', '3/1', 'active', 'ph-truc-lien-3-1'),
-    ('Chí Nhân', '3/1', 'active', 'ph-chi-nhan-3-1'),
-    ('diệu thảo', '3/2', 'active', 'ph-dieu-thao-3-2'),
-    ('Bảo Uyên', '3/4', 'active', 'ph-bao-uyen-3-4'),
-    ('Nguyễn Hữu Tâm', '2/4', 'active', 'ph-nguyen-huu-tam-2-4'),
-    ('Nguyễn Hữu Tài', '4/4', 'active', 'ph-nguyen-huu-tai-4-4')
+    ('Tú Quỳnh', '1/1', 'active', 'ph-tu-quynh-1-1', 'weekday'),
+    ('Thuỷ Ngân', '1/1', 'active', 'ph-thuy-ngan-1-1', 'weekday'),
+    ('Hoàng Long', '1/1', 'active', 'ph-hoang-long-1-1', 'weekday'),
+    ('Trung Long', '1/2', 'active', 'ph-trung-long-1-2', 'weekday'),
+    ('Đức Phúc', '1/3', 'active', 'ph-duc-phuc-1-3', 'weekday'),
+    ('Đức Thịnh', '1/3', 'active', 'ph-duc-thinh-1-3', 'weekday'),
+    ('Nhật Thành', '1/3', 'active', 'ph-nhat-thanh-1-3', 'weekday'),
+    ('Thuý Diễm', '1/3', 'active', 'ph-thuy-diem-1-3', 'weekday'),
+    ('an Nhiên', '1/3', 'inactive', 'ph-an-nhien-1-3', 'weekday'),
+    ('Bảo Vy', '1/3', 'active', 'ph-bao-vy-1-3', 'weekday'),
+    ('Khánh Hưng', '1/3', 'active', 'ph-khanh-hung-1-3', 'weekday'),
+    ('Nhã Phương', '1/3', 'active', 'ph-nha-phuong-1-3', 'weekday'),
+    ('Minh Khang', '1/4', 'active', 'ph-minh-khang-1-4', 'weekday'),
+    ('Bảo Châu', '2/2', 'active', 'ph-bao-chau-2-2', 'weekday'),
+    ('Hữu Việt', '2/4', 'active', 'ph-huu-viet-2-4', 'weekday'),
+    ('Tấn Phát', '2/4', 'active', 'ph-tan-phat-2-4', 'weekday'),
+    ('Bảo Châu', '2/4', 'active', 'ph-bao-chau-2-4', 'weekday'),
+    ('Tam An', '2/4', 'active', 'ph-tam-an-2-4', 'weekday'),
+    ('Ánh Tuyêt', '3/1', 'active', 'ph-anh-tuyet-3-1', 'weekday'),
+    ('Trúc Liên', '3/1', 'active', 'ph-truc-lien-3-1', 'weekday'),
+    ('Chí Nhân', '3/1', 'active', 'ph-chi-nhan-3-1', 'weekday'),
+    ('diệu thảo', '3/2', 'active', 'ph-dieu-thao-3-2', 'weekday'),
+    ('Bảo Uyên', '3/4', 'active', 'ph-bao-uyen-3-4', 'weekday'),
+    ('Nguyễn Hữu Tâm', '2/4', 'active', 'ph-nguyen-huu-tam-2-4', 'weekday'),
+    ('Nguyễn Hữu Tài', '4/4', 'active', 'ph-nguyen-huu-tai-4-4', 'weekday')
 )
-insert into public.students (parent_id, full_name, class_name, status)
-select parents.id, student_rows.full_name, student_rows.class_name, student_rows.status
+insert into public.students (parent_id, full_name, class_name, status, boarding_package_type)
+select parents.id, student_rows.full_name, student_rows.class_name, student_rows.status, student_rows.boarding_package_type
 from student_rows
 join public.parents on parents.username_normalized = student_rows.parent_username
 where not exists (

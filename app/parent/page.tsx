@@ -6,6 +6,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { createClient } from "@/lib/supabase/server";
 import { getVietnamToday, getYearMonth, getMonthBounds } from "@/lib/date";
 import { buildStudentMonthlyFee } from "@/lib/fees";
+import { boardingPackageLabels } from "@/lib/labels";
 import { requireRole } from "@/lib/permissions";
 import { formatCurrency } from "@/lib/utils";
 import type { AttendanceRecord, FeeSetting, Student } from "@/lib/types";
@@ -83,6 +84,9 @@ export default async function ParentDashboardPage() {
               <p className="font-semibold">{child.full_name}</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {child.school_name || "Chưa có trường"} · {child.class_name || "Chưa có lớp"}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {boardingPackageLabels[child.boarding_package_type as keyof typeof boardingPackageLabels] || boardingPackageLabels.weekday}
               </p>
             </div>
           ))}

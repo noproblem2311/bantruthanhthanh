@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
+import { boardingPackageLabels } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminStudentsPage() {
@@ -30,6 +31,7 @@ export default async function AdminStudentsPage() {
                 <TH>Học sinh</TH>
                 <TH>Phụ huynh</TH>
                 <TH>Trường/Lớp</TH>
+                <TH>Gói bán trú</TH>
                 <TH>Trạng thái</TH>
                 <TH></TH>
               </tr>
@@ -46,6 +48,7 @@ export default async function AdminStudentsPage() {
                     <p>{student.school_name || "Chưa có trường"}</p>
                     <p className="text-xs text-muted-foreground">{student.class_name || "Chưa có lớp"}</p>
                   </TD>
+                  <TD>{boardingPackageLabels[student.boarding_package_type as keyof typeof boardingPackageLabels] || boardingPackageLabels.weekday}</TD>
                   <TD>
                     <Badge variant={student.status === "active" ? "success" : "muted"}>{student.status}</Badge>
                   </TD>

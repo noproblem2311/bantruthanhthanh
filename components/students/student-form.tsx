@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Textarea } from "@/components/ui/textarea";
+import { boardingPackageLabels } from "@/lib/labels";
 import type { Parent, Student } from "@/lib/types";
 
 export function StudentForm({ student, parents }: { student?: Student; parents: Parent[] }) {
@@ -37,7 +38,7 @@ export function StudentForm({ student, parents }: { student?: Student; parents: 
               <Input id="full_name" name="full_name" defaultValue={student?.full_name || ""} required />
             </div>
           </div>
-          <div className="grid gap-2 sm:grid-cols-4">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
             <div className="grid gap-2">
               <Label htmlFor="nickname">Tên gọi</Label>
               <Input id="nickname" name="nickname" defaultValue={student?.nickname || ""} />
@@ -55,6 +56,13 @@ export function StudentForm({ student, parents }: { student?: Student; parents: 
               <Select id="status" name="status" defaultValue={student?.status || "active"}>
                 <option value="active">Đang học</option>
                 <option value="inactive">Tạm ngưng</option>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="boarding_package_type">Gói bán trú</Label>
+              <Select id="boarding_package_type" name="boarding_package_type" defaultValue={student?.boarding_package_type || "weekday"}>
+                <option value="weekday">{boardingPackageLabels.weekday}</option>
+                <option value="saturday">{boardingPackageLabels.saturday}</option>
               </Select>
             </div>
           </div>

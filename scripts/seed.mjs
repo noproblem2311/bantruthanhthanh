@@ -34,31 +34,31 @@ function getYearMonthVN() {
 }
 
 const requestedStudents = [
-  { fullName: "Tú Quỳnh", className: "1/1", status: "active", parentUsername: "ph-tu-quynh-1-1" },
-  { fullName: "Thuỷ Ngân", className: "1/1", status: "active", parentUsername: "ph-thuy-ngan-1-1" },
-  { fullName: "Hoàng Long", className: "1/1", status: "active", parentUsername: "ph-hoang-long-1-1" },
-  { fullName: "Trung Long", className: "1/2", status: "active", parentUsername: "ph-trung-long-1-2" },
-  { fullName: "Đức Phúc", className: "1/3", status: "active", parentUsername: "ph-duc-phuc-1-3" },
-  { fullName: "Đức Thịnh", className: "1/3", status: "active", parentUsername: "ph-duc-thinh-1-3" },
-  { fullName: "Nhật Thành", className: "1/3", status: "active", parentUsername: "ph-nhat-thanh-1-3" },
-  { fullName: "Thuý Diễm", className: "1/3", status: "active", parentUsername: "ph-thuy-diem-1-3" },
-  { fullName: "an Nhiên", className: "1/3", status: "inactive", parentUsername: "ph-an-nhien-1-3" },
-  { fullName: "Bảo Vy", className: "1/3", status: "active", parentUsername: "ph-bao-vy-1-3" },
-  { fullName: "Khánh Hưng", className: "1/3", status: "active", parentUsername: "ph-khanh-hung-1-3" },
-  { fullName: "Nhã Phương", className: "1/3", status: "active", parentUsername: "ph-nha-phuong-1-3" },
-  { fullName: "Minh Khang", className: "1/4", status: "active", parentUsername: "ph-minh-khang-1-4" },
-  { fullName: "Bảo Châu", className: "2/2", status: "active", parentUsername: "ph-bao-chau-2-2" },
-  { fullName: "Hữu Việt", className: "2/4", status: "active", parentUsername: "ph-huu-viet-2-4" },
-  { fullName: "Tấn Phát", className: "2/4", status: "active", parentUsername: "ph-tan-phat-2-4" },
-  { fullName: "Bảo Châu", className: "2/4", status: "active", parentUsername: "ph-bao-chau-2-4" },
-  { fullName: "Tam An", className: "2/4", status: "active", parentUsername: "ph-tam-an-2-4" },
-  { fullName: "Ánh Tuyêt", className: "3/1", status: "active", parentUsername: "ph-anh-tuyet-3-1" },
-  { fullName: "Trúc Liên", className: "3/1", status: "active", parentUsername: "ph-truc-lien-3-1" },
-  { fullName: "Chí Nhân", className: "3/1", status: "active", parentUsername: "ph-chi-nhan-3-1" },
-  { fullName: "diệu thảo", className: "3/2", status: "active", parentUsername: "ph-dieu-thao-3-2" },
-  { fullName: "Bảo Uyên", className: "3/4", status: "active", parentUsername: "ph-bao-uyen-3-4" },
-  { fullName: "Nguyễn Hữu Tâm", className: "2/4", status: "active", parentUsername: "ph-nguyen-huu-tam-2-4" },
-  { fullName: "Nguyễn Hữu Tài", className: "4/4", status: "active", parentUsername: "ph-nguyen-huu-tai-4-4" },
+  { fullName: "Tú Quỳnh", className: "1/1", status: "active", parentUsername: "ph-tu-quynh-1-1", boardingPackageType: "weekday" },
+  { fullName: "Thuỷ Ngân", className: "1/1", status: "active", parentUsername: "ph-thuy-ngan-1-1", boardingPackageType: "weekday" },
+  { fullName: "Hoàng Long", className: "1/1", status: "active", parentUsername: "ph-hoang-long-1-1", boardingPackageType: "weekday" },
+  { fullName: "Trung Long", className: "1/2", status: "active", parentUsername: "ph-trung-long-1-2", boardingPackageType: "weekday" },
+  { fullName: "Đức Phúc", className: "1/3", status: "active", parentUsername: "ph-duc-phuc-1-3", boardingPackageType: "weekday" },
+  { fullName: "Đức Thịnh", className: "1/3", status: "active", parentUsername: "ph-duc-thinh-1-3", boardingPackageType: "weekday" },
+  { fullName: "Nhật Thành", className: "1/3", status: "active", parentUsername: "ph-nhat-thanh-1-3", boardingPackageType: "weekday" },
+  { fullName: "Thuý Diễm", className: "1/3", status: "active", parentUsername: "ph-thuy-diem-1-3", boardingPackageType: "weekday" },
+  { fullName: "an Nhiên", className: "1/3", status: "inactive", parentUsername: "ph-an-nhien-1-3", boardingPackageType: "weekday" },
+  { fullName: "Bảo Vy", className: "1/3", status: "active", parentUsername: "ph-bao-vy-1-3", boardingPackageType: "weekday" },
+  { fullName: "Khánh Hưng", className: "1/3", status: "active", parentUsername: "ph-khanh-hung-1-3", boardingPackageType: "weekday" },
+  { fullName: "Nhã Phương", className: "1/3", status: "active", parentUsername: "ph-nha-phuong-1-3", boardingPackageType: "weekday" },
+  { fullName: "Minh Khang", className: "1/4", status: "active", parentUsername: "ph-minh-khang-1-4", boardingPackageType: "weekday" },
+  { fullName: "Bảo Châu", className: "2/2", status: "active", parentUsername: "ph-bao-chau-2-2", boardingPackageType: "weekday" },
+  { fullName: "Hữu Việt", className: "2/4", status: "active", parentUsername: "ph-huu-viet-2-4", boardingPackageType: "weekday" },
+  { fullName: "Tấn Phát", className: "2/4", status: "active", parentUsername: "ph-tan-phat-2-4", boardingPackageType: "weekday" },
+  { fullName: "Bảo Châu", className: "2/4", status: "active", parentUsername: "ph-bao-chau-2-4", boardingPackageType: "weekday" },
+  { fullName: "Tam An", className: "2/4", status: "active", parentUsername: "ph-tam-an-2-4", boardingPackageType: "weekday" },
+  { fullName: "Ánh Tuyêt", className: "3/1", status: "active", parentUsername: "ph-anh-tuyet-3-1", boardingPackageType: "weekday" },
+  { fullName: "Trúc Liên", className: "3/1", status: "active", parentUsername: "ph-truc-lien-3-1", boardingPackageType: "weekday" },
+  { fullName: "Chí Nhân", className: "3/1", status: "active", parentUsername: "ph-chi-nhan-3-1", boardingPackageType: "weekday" },
+  { fullName: "diệu thảo", className: "3/2", status: "active", parentUsername: "ph-dieu-thao-3-2", boardingPackageType: "weekday" },
+  { fullName: "Bảo Uyên", className: "3/4", status: "active", parentUsername: "ph-bao-uyen-3-4", boardingPackageType: "weekday" },
+  { fullName: "Nguyễn Hữu Tâm", className: "2/4", status: "active", parentUsername: "ph-nguyen-huu-tam-2-4", boardingPackageType: "weekday" },
+  { fullName: "Nguyễn Hữu Tài", className: "4/4", status: "active", parentUsername: "ph-nguyen-huu-tai-4-4", boardingPackageType: "weekday" },
 ];
 
 async function ensureAuthUser(supabase, { email, password, role }) {
@@ -263,6 +263,7 @@ async function main() {
         .from("students")
         .update({
           status: student.status,
+          boarding_package_type: student.boardingPackageType,
           class_name: student.className,
         })
         .eq("id", existingStudent.id);
@@ -272,6 +273,7 @@ async function main() {
         full_name: student.fullName,
         class_name: student.className,
         status: student.status,
+        boarding_package_type: student.boardingPackageType,
       });
     }
   }
