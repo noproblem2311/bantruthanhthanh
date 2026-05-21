@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { getMonthBounds, getVietnamToday, getYearMonth } from "@/lib/date";
+import { buildStudentMonthlyFee } from "@/lib/fees";
 import { attendanceBadgeVariant, attendanceLabels, offRequestBadgeVariant, offRequestLabels } from "@/lib/labels";
 import { formatCurrency } from "@/lib/utils";
+import type { AttendanceRecord, FeeSetting, Student } from "@/lib/types";
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
@@ -16,11 +18,12 @@ export default async function AdminDashboardPage() {
 
   const [
     { count: activeStudents },
+    { data: activeStudentRows },
     { count: activeParents },
     { data: todayAttendance },
     { data: todayOffRequests },
     { count: pendingPasswordRequests },
-    { data: monthlyPresent },
+    { data: monthlyAttendance },
     { data: feeSetting },
     { data: latestOffRequests },
     { data: latestPasswordRequests },
@@ -28,11 +31,12 @@ export default async function AdminDashboardPage() {
     { data: latestStudents },
   ] = await Promise.all([
     supabase.from("students").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabase.from("students").select("*").eq("status", "active"),
     supabase.from("parents").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("attendance_records").select("*, students(full_name)").eq("attendance_date", today),
     supabase.from("off_requests").select("*, students(full_name), parents(full_name,username)").eq("off_date", today),
     supabase.from("password_reset_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
-    supabase.from("attendance_records").select("id,status").eq("status", "present").gte("attendance_date", start).lt("attendance_date", end),
+    supabase.from("attendance_records").select("*").gte("attendance_date", start).lt("attendance_date", end),
     supabase.from("fee_settings").select("*").eq("year_month", yearMonth).maybeSingle(),
     supabase.from("off_requests").select("*, students(full_name), parents(full_name,username)").order("submitted_at", { ascending: false }).limit(5),
     supabase.from("password_reset_requests").select("*, parents(full_name,username)").order("requested_at", { ascending: false }).limit(5),
@@ -44,8 +48,18 @@ export default async function AdminDashboardPage() {
   const excusedToday = (todayAttendance || []).filter((record) => record.status === "excused_absent").length;
   const markedStudentIds = new Set((todayAttendance || []).filter((record) => record.status !== "not_marked").map((record) => record.student_id));
   const notMarkedToday = Math.max((activeStudents || 0) - markedStudentIds.size, 0);
-  const presentMonth = monthlyPresent?.length || 0;
-  const estimatedRevenue = feeSetting ? presentMonth * feeSetting.fee_per_attendance_day : null;
+  const presentMonth = (monthlyAttendance || []).filter((record) => record.status === "present").length;
+  const feeRows = feeSetting
+    ? ((activeStudentRows || []) as Student[]).map((student) =>
+        buildStudentMonthlyFee(
+          student,
+          ((monthlyAttendance || []) as AttendanceRecord[]).filter((record) => record.student_id === student.id),
+          feeSetting as FeeSetting,
+        ),
+      )
+    : [];
+  const estimatedRevenue = feeSetting ? feeRows.reduce((sum, row) => sum + (row.total_amount || 0), 0) : null;
+  const chargedAbsences = feeRows.reduce((sum, row) => sum + row.absent_days, 0);
 
   return (
     <div className="space-y-5">
@@ -60,7 +74,7 @@ export default async function AdminDashboardPage() {
         <StatCard
           title="Doanh thu dự kiến tháng"
           value={estimatedRevenue === null ? "Chưa cấu hình" : formatCurrency(estimatedRevenue)}
-          description={`${presentMonth} buổi bán trú`}
+          description={`${presentMonth} buổi có mặt, ${chargedAbsences} ngày nghỉ tính trừ`}
           icon={CreditCard}
         />
       </div>

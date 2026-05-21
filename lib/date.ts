@@ -92,7 +92,20 @@ export function getMonthBounds(yearMonth: string) {
   return { start, end: next };
 }
 
+export function getDayOfWeek(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+export function isSaturday(date: string) {
+  return getDayOfWeek(date) === 6;
+}
+
+export function isSunday(date: string) {
+  return getDayOfWeek(date) === 0;
+}
+
 export function isWeekend(date: string) {
-  const day = new Date(`${date}T00:00:00+07:00`).getDay();
+  const day = getDayOfWeek(date);
   return day === 0 || day === 6;
 }

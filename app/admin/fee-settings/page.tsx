@@ -8,6 +8,7 @@ import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/server";
 import { getYearMonth } from "@/lib/date";
+import { DEFAULT_ABSENCE_DEDUCTION_AMOUNT, DEFAULT_SATURDAY_PACKAGE_AMOUNT, DEFAULT_WEEKDAY_PACKAGE_AMOUNT } from "@/lib/fees";
 import { formatCurrency, getMessageParam } from "@/lib/utils";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -16,13 +17,15 @@ export default async function FeeSettingsPage({ searchParams }: { searchParams: 
   const params = await searchParams;
   const supabase = await createClient();
   const { data: settings } = await supabase.from("fee_settings").select("*").order("year_month", { ascending: false });
+  const yearMonth = getYearMonth();
+  const currentSetting = (settings || []).find((setting) => setting.year_month === yearMonth);
 
   return (
     <div className="grid gap-5 xl:grid-cols-[420px_1fr]">
       <Card>
         <CardHeader>
           <CardTitle>Cấu hình phí tháng</CardTitle>
-          <CardDescription>Phí = số buổi có mặt * đơn giá tháng.</CardDescription>
+          <CardDescription>Phí = giá gói tháng - số ngày nghỉ không tính Chủ nhật * tiền trừ/ngày.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
@@ -31,11 +34,40 @@ export default async function FeeSettingsPage({ searchParams }: { searchParams: 
           <form action={upsertFeeSettingAction} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="year_month">Tháng</Label>
-              <Input id="year_month" name="year_month" type="month" defaultValue={getYearMonth()} required />
+              <Input id="year_month" name="year_month" type="month" defaultValue={yearMonth} required />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="fee_per_attendance_day">Đơn giá/buổi</Label>
-              <Input id="fee_per_attendance_day" name="fee_per_attendance_day" type="number" min={0} defaultValue={80000} required />
+              <Label htmlFor="saturday_package_amount">Gói có thứ 7</Label>
+              <Input
+                id="saturday_package_amount"
+                name="saturday_package_amount"
+                type="number"
+                min={0}
+                defaultValue={currentSetting?.saturday_package_amount ?? DEFAULT_SATURDAY_PACKAGE_AMOUNT}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="weekday_package_amount">Gói không thứ 7</Label>
+              <Input
+                id="weekday_package_amount"
+                name="weekday_package_amount"
+                type="number"
+                min={0}
+                defaultValue={currentSetting?.weekday_package_amount ?? DEFAULT_WEEKDAY_PACKAGE_AMOUNT}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="absence_deduction_amount">Tiền trừ/ngày nghỉ</Label>
+              <Input
+                id="absence_deduction_amount"
+                name="absence_deduction_amount"
+                type="number"
+                min={0}
+                defaultValue={currentSetting?.absence_deduction_amount ?? DEFAULT_ABSENCE_DEDUCTION_AMOUNT}
+                required
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="currency">Tiền tệ</Label>
@@ -59,7 +91,9 @@ export default async function FeeSettingsPage({ searchParams }: { searchParams: 
             <THead>
               <tr>
                 <TH>Tháng</TH>
-                <TH>Đơn giá</TH>
+                <TH>Gói có thứ 7</TH>
+                <TH>Gói không thứ 7</TH>
+                <TH>Trừ/ngày nghỉ</TH>
                 <TH>Ghi chú</TH>
               </tr>
             </THead>
@@ -67,7 +101,9 @@ export default async function FeeSettingsPage({ searchParams }: { searchParams: 
               {(settings || []).map((setting) => (
                 <tr key={setting.id}>
                   <TD>{setting.year_month}</TD>
-                  <TD>{formatCurrency(setting.fee_per_attendance_day, setting.currency)}</TD>
+                  <TD>{formatCurrency(setting.saturday_package_amount, setting.currency)}</TD>
+                  <TD>{formatCurrency(setting.weekday_package_amount, setting.currency)}</TD>
+                  <TD>{formatCurrency(setting.absence_deduction_amount, setting.currency)}</TD>
                   <TD>{setting.note || "Không có"}</TD>
                 </tr>
               ))}

@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { createClient } from "@/lib/supabase/server";
 import { getVietnamToday, getYearMonth, getMonthBounds } from "@/lib/date";
+import { buildStudentMonthlyFee } from "@/lib/fees";
 import { requireRole } from "@/lib/permissions";
 import { formatCurrency } from "@/lib/utils";
+import type { AttendanceRecord, FeeSetting, Student } from "@/lib/types";
 
 export default async function ParentDashboardPage() {
   const profile = await requireRole("parent");
@@ -35,7 +37,16 @@ export default async function ParentDashboardPage() {
   ]);
 
   const presentDays = (monthlyAttendance || []).filter((record) => record.status === "present").length;
-  const estimatedFee = feeSetting ? presentDays * feeSetting.fee_per_attendance_day : null;
+  const feeRows = feeSetting
+    ? ((children || []) as Student[]).map((child) =>
+        buildStudentMonthlyFee(
+          child,
+          ((monthlyAttendance || []) as AttendanceRecord[]).filter((record) => record.student_id === child.id),
+          feeSetting as FeeSetting,
+        ),
+      )
+    : [];
+  const estimatedFee = feeSetting ? feeRows.reduce((sum, row) => sum + (row.total_amount || 0), 0) : null;
 
   return (
     <div className="space-y-5">

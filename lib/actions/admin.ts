@@ -358,7 +358,9 @@ export async function upsertFeeSettingAction(formData: FormData) {
   const profile = await requireRole("admin");
   const parsed = feeSettingSchema.safeParse({
     year_month: formData.get("year_month"),
-    fee_per_attendance_day: formData.get("fee_per_attendance_day"),
+    saturday_package_amount: formData.get("saturday_package_amount"),
+    weekday_package_amount: formData.get("weekday_package_amount"),
+    absence_deduction_amount: formData.get("absence_deduction_amount"),
     currency: formData.get("currency") || "VND",
     note: formData.get("note"),
   });
@@ -369,7 +371,10 @@ export async function upsertFeeSettingAction(formData: FormData) {
   const { error } = await supabase.from("fee_settings").upsert(
     {
       year_month: parsed.data.year_month,
-      fee_per_attendance_day: parsed.data.fee_per_attendance_day,
+      fee_per_attendance_day: parsed.data.absence_deduction_amount,
+      saturday_package_amount: parsed.data.saturday_package_amount,
+      weekday_package_amount: parsed.data.weekday_package_amount,
+      absence_deduction_amount: parsed.data.absence_deduction_amount,
       currency: parsed.data.currency,
       note: parsed.data.note || null,
       created_by: profile.id,

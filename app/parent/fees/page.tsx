@@ -16,7 +16,7 @@ export default async function ParentFeesPage({ searchParams }: { searchParams: S
   const params = await searchParams;
   const yearMonth = typeof params.month === "string" ? params.month : getYearMonth();
   const supabase = await createClient();
-  const { data: children } = await supabase.from("students").select("*").order("full_name");
+  const { data: children } = await supabase.from("students").select("*").eq("status", "active").order("full_name");
   const feeSetting = await getFeeSetting(supabase, yearMonth);
   const feeRows = await Promise.all(((children || []) as Student[]).map((child) => calculateMonthlyFee(supabase, child, yearMonth)));
   const total = feeRows.reduce((sum, row) => sum + (row.total_amount || 0), 0);
@@ -39,20 +39,27 @@ export default async function ParentFeesPage({ searchParams }: { searchParams: S
           <THead>
             <tr>
               <TH>Học sinh</TH>
-              <TH>Số buổi có mặt</TH>
-              <TH>Đơn giá</TH>
+              <TH>Gói</TH>
+              <TH>Giá gói</TH>
+              <TH>Nghỉ tính trừ</TH>
+              <TH>Tiền trừ</TH>
               <TH>Tổng tiền</TH>
-              <TH>Ngày có mặt</TH>
+              <TH>Ngày học thứ 7</TH>
             </tr>
           </THead>
           <TBody>
             {feeRows.map((row) => (
               <tr key={row.student.id}>
                 <TD>{row.student.full_name}</TD>
-                <TD>{row.present_days}</TD>
-                <TD>{row.fee_per_attendance_day === null ? "Chưa có" : formatCurrency(row.fee_per_attendance_day)}</TD>
+                <TD>{row.package_name}</TD>
+                <TD>{row.package_amount === null ? "Chưa có" : formatCurrency(row.package_amount)}</TD>
+                <TD>
+                  <p>{row.absent_days} ngày</p>
+                  <p className="text-xs text-muted-foreground">{row.charged_absent_dates.join(", ") || "Không có"}</p>
+                </TD>
+                <TD>{row.absence_deduction_total === null ? "Chưa có" : formatCurrency(row.absence_deduction_total)}</TD>
                 <TD>{row.total_amount === null ? "Chưa tính" : formatCurrency(row.total_amount)}</TD>
-                <TD className="max-w-md text-xs text-muted-foreground">{row.attendance_dates.join(", ") || "Không có"}</TD>
+                <TD className="max-w-md text-xs text-muted-foreground">{row.saturday_attendance_dates.join(", ") || "Không có"}</TD>
               </tr>
             ))}
           </TBody>

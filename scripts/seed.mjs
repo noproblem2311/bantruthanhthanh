@@ -33,6 +33,34 @@ function getYearMonthVN() {
   return `${map.year}-${map.month}`;
 }
 
+const requestedStudents = [
+  { fullName: "Tú Quỳnh", className: "1/1", status: "active", parentUsername: "ph-tu-quynh-1-1" },
+  { fullName: "Thuỷ Ngân", className: "1/1", status: "active", parentUsername: "ph-thuy-ngan-1-1" },
+  { fullName: "Hoàng Long", className: "1/1", status: "active", parentUsername: "ph-hoang-long-1-1" },
+  { fullName: "Trung Long", className: "1/2", status: "active", parentUsername: "ph-trung-long-1-2" },
+  { fullName: "Đức Phúc", className: "1/3", status: "active", parentUsername: "ph-duc-phuc-1-3" },
+  { fullName: "Đức Thịnh", className: "1/3", status: "active", parentUsername: "ph-duc-thinh-1-3" },
+  { fullName: "Nhật Thành", className: "1/3", status: "active", parentUsername: "ph-nhat-thanh-1-3" },
+  { fullName: "Thuý Diễm", className: "1/3", status: "active", parentUsername: "ph-thuy-diem-1-3" },
+  { fullName: "an Nhiên", className: "1/3", status: "inactive", parentUsername: "ph-an-nhien-1-3" },
+  { fullName: "Bảo Vy", className: "1/3", status: "active", parentUsername: "ph-bao-vy-1-3" },
+  { fullName: "Khánh Hưng", className: "1/3", status: "active", parentUsername: "ph-khanh-hung-1-3" },
+  { fullName: "Nhã Phương", className: "1/3", status: "active", parentUsername: "ph-nha-phuong-1-3" },
+  { fullName: "Minh Khang", className: "1/4", status: "active", parentUsername: "ph-minh-khang-1-4" },
+  { fullName: "Bảo Châu", className: "2/2", status: "active", parentUsername: "ph-bao-chau-2-2" },
+  { fullName: "Hữu Việt", className: "2/4", status: "active", parentUsername: "ph-huu-viet-2-4" },
+  { fullName: "Tấn Phát", className: "2/4", status: "active", parentUsername: "ph-tan-phat-2-4" },
+  { fullName: "Bảo Châu", className: "2/4", status: "active", parentUsername: "ph-bao-chau-2-4" },
+  { fullName: "Tam An", className: "2/4", status: "active", parentUsername: "ph-tam-an-2-4" },
+  { fullName: "Ánh Tuyêt", className: "3/1", status: "active", parentUsername: "ph-anh-tuyet-3-1" },
+  { fullName: "Trúc Liên", className: "3/1", status: "active", parentUsername: "ph-truc-lien-3-1" },
+  { fullName: "Chí Nhân", className: "3/1", status: "active", parentUsername: "ph-chi-nhan-3-1" },
+  { fullName: "diệu thảo", className: "3/2", status: "active", parentUsername: "ph-dieu-thao-3-2" },
+  { fullName: "Bảo Uyên", className: "3/4", status: "active", parentUsername: "ph-bao-uyen-3-4" },
+  { fullName: "Nguyễn Hữu Tâm", className: "2/4", status: "active", parentUsername: "ph-nguyen-huu-tam-2-4" },
+  { fullName: "Nguyễn Hữu Tài", className: "4/4", status: "active", parentUsername: "ph-nguyen-huu-tai-4-4" },
+];
+
 async function ensureAuthUser(supabase, { email, password, role }) {
   const { data: usersData, error: listError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
   if (listError) throw listError;
@@ -184,13 +212,69 @@ async function main() {
   await supabase.from("fee_settings").upsert(
     {
       year_month: getYearMonthVN(),
-      fee_per_attendance_day: 80000,
+      fee_per_attendance_day: 33000,
+      saturday_package_amount: 850000,
+      weekday_package_amount: 720000,
+      absence_deduction_amount: 33000,
       currency: "VND",
       note: "Seed tháng hiện tại",
       created_by: adminProfile.id,
     },
     { onConflict: "year_month" },
   );
+
+  for (const student of requestedStudents) {
+    const usernameNormalized = normalizeUsername(student.parentUsername);
+    const { data: existingParent, error: existingParentError } = await supabase
+      .from("parents")
+      .select("id")
+      .eq("username_normalized", usernameNormalized)
+      .maybeSingle();
+    if (existingParentError) throw existingParentError;
+
+    const { data: requestedParent, error: requestedParentError } = existingParent
+      ? await supabase.from("parents").update({ status: student.status }).eq("id", existingParent.id).select("id").single()
+      : await supabase
+          .from("parents")
+          .insert({
+            full_name: null,
+            username: student.parentUsername,
+            username_normalized: usernameNormalized,
+            phone: null,
+            email: null,
+            internal_auth_email: `parent_${usernameNormalized}@internal.bantru.local`,
+            status: student.status,
+            profile_completed: false,
+          })
+          .select("id")
+          .single();
+    if (requestedParentError) throw requestedParentError;
+
+    const { data: existingStudent } = await supabase
+      .from("students")
+      .select("id")
+      .eq("parent_id", requestedParent.id)
+      .eq("full_name", student.fullName)
+      .eq("class_name", student.className)
+      .maybeSingle();
+
+    if (existingStudent) {
+      await supabase
+        .from("students")
+        .update({
+          status: student.status,
+          class_name: student.className,
+        })
+        .eq("id", existingStudent.id);
+    } else {
+      await supabase.from("students").insert({
+        parent_id: requestedParent.id,
+        full_name: student.fullName,
+        class_name: student.className,
+        status: student.status,
+      });
+    }
+  }
 
   console.log("Seed completed");
   console.log("Admin: admin@example.com / Admin123456!");

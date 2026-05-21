@@ -53,7 +53,9 @@ export const updateManagerStatusSchema = z.object({
 
 export const feeSettingSchema = z.object({
   year_month: z.string().regex(/^\d{4}-\d{2}$/, "Tháng không hợp lệ"),
-  fee_per_attendance_day: z.coerce.number().int().min(0),
+  saturday_package_amount: z.coerce.number().int().min(0),
+  weekday_package_amount: z.coerce.number().int().min(0),
+  absence_deduction_amount: z.coerce.number().int().min(0),
   currency: z.string().default("VND"),
   note: z.string().optional(),
 });

@@ -1,33 +1,3 @@
-insert into public.app_settings (center_name, description)
-select 'Bán trú Learning Hub', 'Bán trú học tập cho học sinh tiểu học'
-where not exists (select 1 from public.app_settings);
-
-insert into public.fee_settings (
-  year_month,
-  fee_per_attendance_day,
-  saturday_package_amount,
-  weekday_package_amount,
-  absence_deduction_amount,
-  currency,
-  note
-)
-values (
-  to_char((now() at time zone 'Asia/Ho_Chi_Minh'), 'YYYY-MM'),
-  33000,
-  850000,
-  720000,
-  33000,
-  'VND',
-  'Seed SQL tháng hiện tại'
-)
-on conflict (year_month) do update
-set fee_per_attendance_day = excluded.fee_per_attendance_day,
-    saturday_package_amount = excluded.saturday_package_amount,
-    weekday_package_amount = excluded.weekday_package_amount,
-    absence_deduction_amount = excluded.absence_deduction_amount,
-    currency = excluded.currency,
-    note = excluded.note;
-
 with parent_rows(username, full_name, phone, internal_auth_email, status) as (
   values
     ('ph-tu-quynh-1-1', null::text, null::text, 'parent_ph-tu-quynh-1-1@internal.bantru.local', 'active'),
