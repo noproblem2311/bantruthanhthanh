@@ -23,7 +23,7 @@ export function AttendanceFilterCard({
   return (
     <Card>
       <CardContent className="p-4">
-        <form ref={formRef} className="grid gap-3 md:grid-cols-[180px_1fr_220px_auto] md:items-end">
+        <form ref={formRef} method="get" className="grid gap-3 md:grid-cols-[180px_1fr_220px_auto] md:items-end">
           <div className="grid gap-2">
             <Label htmlFor="date">Ngày</Label>
             <Input id="date" name="date" type="date" defaultValue={date} onChange={() => formRef.current?.requestSubmit()} required />
@@ -42,7 +42,7 @@ export function AttendanceFilterCard({
               <option value="unexcused_absent">Vắng không phép</option>
             </Select>
           </div>
-          <SubmitButton pendingText="Đang lọc...">Lọc</SubmitButton>
+          <SubmitButton pendingText="Đang tải...">Xem dữ liệu</SubmitButton>
         </form>
       </CardContent>
     </Card>

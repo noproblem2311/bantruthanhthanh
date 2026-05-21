@@ -38,7 +38,7 @@ function AttendanceActions({ formId }: { formId: string }) {
   return (
     <div className="grid gap-2 sm:flex sm:flex-wrap sm:justify-end">
       <SelectAllPresentButton formId={formId} />
-      <SubmitButton pendingText="Đang lưu..." className="w-full sm:w-auto">
+      <SubmitButton name="intent" value="save_attendance" pendingText="Đang lưu..." className="w-full sm:w-auto">
         <Save className="h-4 w-4" />
         Lưu điểm danh
       </SubmitButton>
@@ -208,7 +208,7 @@ export function AttendanceTable({
           {students.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Không có học sinh phù hợp.</div> : null}
           {students.length > 0 ? (
             <div className="flex justify-end border-t bg-white p-4">
-              <SubmitButton pendingText="Đang lưu..." className="w-full sm:w-auto">
+              <SubmitButton name="intent" value="save_attendance" pendingText="Đang lưu..." className="w-full sm:w-auto">
                 <Save className="h-4 w-4" />
                 Lưu điểm danh
               </SubmitButton>

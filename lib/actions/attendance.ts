@@ -48,6 +48,11 @@ export async function markAttendanceAction(formData: FormData) {
 export async function saveAttendanceBatchAction(formData: FormData) {
   const profile = await requireRole(["admin", "manager"]);
   const path = attendancePath(formData);
+  const intent = formData.get("intent");
+  if (intent !== "save_attendance") {
+    redirectWithMessage(path, "error", "Chỉ nút Lưu điểm danh mới được ghi dữ liệu");
+  }
+
   const attendanceDate = formData.get("attendance_date");
 
   if (typeof attendanceDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(attendanceDate)) {
