@@ -10,6 +10,7 @@ Web app quản lý bán trú học sinh tiểu học bằng Next.js App Router, 
 - Supabase SSR auth cookie bằng `@supabase/ssr`.
 - Middleware phân quyền `/admin`, `/manager`, `/parent`.
 - Admin quản lý phụ huynh, học sinh, manager, điểm danh, đơn xin nghỉ, reset mật khẩu, cấu hình phí, tổng hợp phí CSV, settings.
+- Học phí tháng tính theo 2 gói bán trú: có thứ 7 và không thứ 7. Công thức: `giá gói - ngày nghỉ không tính Chủ nhật * tiền trừ/ngày`.
 - Manager xem học sinh active, đơn xin nghỉ, điểm danh theo ngày, search/filter, bulk mark present.
 - Parent xem con, cập nhật profile, xin nghỉ trước 06:00 giờ Việt Nam, xem điểm danh và phí tháng.
 - RLS bật cho tất cả bảng app trong `public`.
@@ -48,10 +49,12 @@ Chạy SQL trong Supabase SQL Editor hoặc Supabase CLI:
 supabase db push
 ```
 
-Migration chính nằm ở:
+Migrations nằm ở:
 
 ```text
 supabase/migrations/001_initial_schema.sql
+supabase/migrations/002_fee_packages.sql
+supabase/migrations/003_seed_requested_students.sql
 ```
 
 File này tạo schema, indexes, helper functions `get_current_role()`, `is_admin()`, `is_manager()`, `is_parent()` và RLS policies.
@@ -79,7 +82,7 @@ Tài khoản test:
 - Manager: `manager@example.com` / `Manager123456!`
 - Parent: `phuhuynh01` / `Parent123456!`
 
-`supabase/seed.sql` chỉ seed app settings và fee setting. Auth users cần tạo bằng `npm run seed` vì Supabase Auth không nên seed bằng SQL migration trực tiếp.
+`supabase/seed.sql` seed app settings, fee setting và danh sách học sinh/phụ huynh placeholder. Auth users test cần tạo bằng `npm run seed` vì Supabase Auth không nên seed bằng SQL migration trực tiếp.
 
 ## 6. Deploy Vercel
 

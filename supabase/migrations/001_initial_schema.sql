@@ -114,7 +114,10 @@ create table if not exists public.password_reset_requests (
 create table if not exists public.fee_settings (
   id uuid primary key default gen_random_uuid(),
   year_month text not null unique,
-  fee_per_attendance_day integer not null check (fee_per_attendance_day >= 0),
+  fee_per_attendance_day integer not null default 33000 check (fee_per_attendance_day >= 0),
+  saturday_package_amount integer not null default 850000 check (saturday_package_amount >= 0),
+  weekday_package_amount integer not null default 720000 check (weekday_package_amount >= 0),
+  absence_deduction_amount integer not null default 33000 check (absence_deduction_amount >= 0),
   currency text default 'VND',
   note text,
   created_by uuid references public.profiles(id) on delete set null,

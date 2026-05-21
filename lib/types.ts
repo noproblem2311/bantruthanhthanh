@@ -80,6 +80,9 @@ export type FeeSetting = {
   id: string;
   year_month: string;
   fee_per_attendance_day: number;
+  saturday_package_amount: number;
+  weekday_package_amount: number;
+  absence_deduction_amount: number;
   currency: string;
   note: string | null;
   created_by: string | null;

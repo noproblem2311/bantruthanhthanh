@@ -20,17 +20,20 @@ export default async function AdminFeesPage({ searchParams }: { searchParams: Se
   const feeSetting = await getFeeSetting(supabase, yearMonth);
   const { data: parents } = await supabase.from("parents").select("*, students(*)").order("full_name");
 
-  const rows = await Promise.all(
-    ((parents || []) as Array<Parent & { students: Student[] }>).map(async (parent) => {
-      const studentFees = await Promise.all((parent.students || []).map((student) => calculateMonthlyFee(supabase, student, yearMonth)));
-      return {
-        parent,
-        studentFees,
-        totalDays: studentFees.reduce((sum, row) => sum + row.present_days, 0),
-        totalAmount: studentFees.reduce((sum, row) => sum + (row.total_amount || 0), 0),
-      };
-    }),
-  );
+  const rows = (
+    await Promise.all(
+      ((parents || []) as Array<Parent & { students: Student[] }>).map(async (parent) => {
+        const activeStudents = (parent.students || []).filter((student) => student.status === "active");
+        const studentFees = await Promise.all(activeStudents.map((student) => calculateMonthlyFee(supabase, student, yearMonth)));
+        return {
+          parent,
+          studentFees,
+          totalAbsences: studentFees.reduce((sum, row) => sum + row.absent_days, 0),
+          totalAmount: studentFees.reduce((sum, row) => sum + (row.total_amount || 0), 0),
+        };
+      }),
+    )
+  ).filter((row) => row.studentFees.length > 0);
 
   const filtered = rows.filter((row) => {
     const text = `${row.parent.full_name || ""} ${row.parent.username} ${row.parent.phone || ""} ${row.studentFees.map((item) => item.student.full_name).join(" ")}`.toLowerCase();
@@ -38,13 +41,14 @@ export default async function AdminFeesPage({ searchParams }: { searchParams: Se
   });
 
   const csvRows = [
-    ["Phu huynh", "Username", "So dien thoai", "Hoc sinh", "Tong buoi", "Tong tien"],
+    ["Phu huynh", "Username", "So dien thoai", "Hoc sinh", "Goi", "Ngay nghi tinh tru", "Tong tien"],
     ...filtered.map((row) => [
       row.parent.full_name || "",
       row.parent.username,
       row.parent.phone || "",
-      row.studentFees.map((item) => `${item.student.full_name} (${item.present_days})`).join("; "),
-      String(row.totalDays),
+      row.studentFees.map((item) => item.student.full_name).join("; "),
+      row.studentFees.map((item) => `${item.student.full_name}: ${item.package_name}`).join("; "),
+      String(row.totalAbsences),
       String(row.totalAmount),
     ]),
   ];
@@ -80,7 +84,7 @@ export default async function AdminFeesPage({ searchParams }: { searchParams: Se
             <tr>
               <TH>Phụ huynh</TH>
               <TH>Danh sách con</TH>
-              <TH>Tổng buổi</TH>
+              <TH>Nghỉ tính trừ</TH>
               <TH>Tổng tiền</TH>
             </tr>
           </THead>
@@ -95,13 +99,13 @@ export default async function AdminFeesPage({ searchParams }: { searchParams: Se
                   <div className="space-y-1">
                     {row.studentFees.map((item) => (
                       <p key={item.student.id} className="text-sm">
-                        {item.student.full_name}: {item.present_days} buổi
+                        {item.student.full_name}: {item.package_name}, nghỉ {item.absent_days} ngày
                       </p>
                     ))}
                   </div>
                 </TD>
-                <TD>{row.totalDays}</TD>
-                <TD>{feeSetting ? formatCurrency(row.totalAmount) : "Chưa tính"}</TD>
+                <TD>{row.totalAbsences}</TD>
+                <TD>{feeSetting ? formatCurrency(row.totalAmount, feeSetting.currency) : "Chưa tính"}</TD>
               </tr>
             ))}
           </TBody>
