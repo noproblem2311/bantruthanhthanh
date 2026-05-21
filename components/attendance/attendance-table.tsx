@@ -93,6 +93,11 @@ export function AttendanceTable({
   const formId = `attendance-batch-${date}`;
   const mobileFormId = `${formId}-mobile`;
   const desktopFormId = `${formId}-desktop`;
+  const savedRecordCount = records.length;
+
+  function getStudentRecordKey(studentId: string, record: AttendanceRecord | undefined) {
+    return `${date}-${studentId}-${record?.updated_at || record?.marked_at || "empty"}`;
+  }
 
   return (
     <>
@@ -103,7 +108,7 @@ export function AttendanceTable({
             <div>
               <CardTitle>{title}</CardTitle>
               <CardDescription>
-                Ngày {formatVietnamDate(date)}. Chọn trạng thái cho từng học sinh, sau đó lưu một lần.
+                Ngày {formatVietnamDate(date)}. Đã tải {savedRecordCount} bản ghi đã lưu.
               </CardDescription>
             </div>
             <AttendanceActions formId={mobileFormId} />
@@ -115,7 +120,7 @@ export function AttendanceTable({
               const hasApprovedOff = approvedOffStudentIds.has(student.id);
 
               return (
-                <div key={student.id} className="rounded-lg border bg-white p-3">
+                <div key={getStudentRecordKey(student.id, record)} className="rounded-lg border bg-white p-3">
                   <input type="hidden" name="student_id" value={student.id} />
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-3">
@@ -152,7 +157,7 @@ export function AttendanceTable({
           <div>
             <CardTitle>{title}</CardTitle>
             <CardDescription>
-              Ngày {formatVietnamDate(date)}. Chọn trạng thái cho từng học sinh, sau đó lưu một lần. Chỉ “Có mặt” mới được tính phí.
+              Ngày {formatVietnamDate(date)}. Đã tải {savedRecordCount} bản ghi đã lưu. Chỉ “Có mặt” mới được tính phí.
             </CardDescription>
           </div>
           <AttendanceActions formId={desktopFormId} />
@@ -174,7 +179,7 @@ export function AttendanceTable({
                 const hasApprovedOff = approvedOffStudentIds.has(student.id);
 
                 return (
-                  <tr key={student.id} className="bg-white">
+                  <tr key={getStudentRecordKey(student.id, record)} className="bg-white">
                     <TD>
                       <div className="space-y-1">
                         <p className="font-medium">{student.full_name}</p>
