@@ -36,6 +36,7 @@ export const studentSchema = z.object({
   health_notes: z.string().optional(),
   allergy_notes: z.string().optional(),
   pickup_notes: z.string().optional(),
+  boarding_package_type: z.enum(["weekday", "saturday"]).default("weekday"),
   status: z.enum(["active", "inactive"]).default("active"),
 });
 

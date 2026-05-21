@@ -1,7 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getMonthBounds, isSaturday, isSunday } from "@/lib/date";
-import type { AttendanceRecord, FeeSetting, Student } from "@/lib/types";
+import { boardingPackageLabels } from "@/lib/labels";
+import type { AttendanceRecord, BoardingPackageType, FeeSetting, Student } from "@/lib/types";
 
 type SupabaseLike = SupabaseClient;
 
@@ -9,13 +10,11 @@ export const DEFAULT_SATURDAY_PACKAGE_AMOUNT = 850000;
 export const DEFAULT_WEEKDAY_PACKAGE_AMOUNT = 720000;
 export const DEFAULT_ABSENCE_DEDUCTION_AMOUNT = 33000;
 
-export type FeePackageType = "saturday" | "weekday";
-
 export type StudentMonthlyFee = {
   student: Student;
   present_days: number;
   absent_days: number;
-  package_type: FeePackageType;
+  package_type: BoardingPackageType;
   package_name: string;
   package_amount: number | null;
   absence_deduction_amount: number | null;
@@ -56,7 +55,7 @@ export function buildStudentMonthlyFee(student: Student, records: AttendanceReco
   const notMarkedDates = records.filter((record) => record.status === "not_marked").map((record) => record.attendance_date);
   const saturdayAttendanceDates = attendanceDates.filter(isSaturday);
   const chargedAbsentDates = [...excusedAbsentDates, ...unexcusedAbsentDates].filter((date) => !isSunday(date)).sort();
-  const packageType: FeePackageType = saturdayAttendanceDates.length > 0 ? "saturday" : "weekday";
+  const packageType = student.boarding_package_type ?? "weekday";
   const packageAmount =
     feeSetting === null
       ? null
@@ -71,7 +70,7 @@ export function buildStudentMonthlyFee(student: Student, records: AttendanceReco
     present_days: attendanceDates.length,
     absent_days: chargedAbsentDates.length,
     package_type: packageType,
-    package_name: packageType === "saturday" ? "Có thứ 7" : "Không thứ 7",
+    package_name: boardingPackageLabels[packageType],
     package_amount: packageAmount,
     absence_deduction_amount: absenceDeductionAmount,
     absence_deduction_total: absenceDeductionTotal,

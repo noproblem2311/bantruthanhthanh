@@ -44,7 +44,7 @@ export default async function ParentFeesPage({ searchParams }: { searchParams: S
               <TH>Nghỉ tính trừ</TH>
               <TH>Tiền trừ</TH>
               <TH>Tổng tiền</TH>
-              <TH>Ngày học thứ 7</TH>
+              <TH>Ngày có mặt thứ 7</TH>
             </tr>
           </THead>
           <TBody>
