@@ -12,6 +12,7 @@ const navItems: NavItem[] = [
   { href: "/admin/password-reset-requests", label: "Cấp lại mật khẩu", icon: "security" },
   { href: "/admin/fee-settings", label: "Cấu hình phí", icon: "fees" },
   { href: "/admin/fees", label: "Tổng hợp phí", icon: "fees" },
+  { href: "/admin/monthly-history", label: "Lịch sử", icon: "history" },
   { href: "/admin/settings", label: "Cài đặt", icon: "settings" },
 ];
 

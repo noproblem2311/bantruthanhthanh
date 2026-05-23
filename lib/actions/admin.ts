@@ -6,18 +6,21 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { redirectWithMessage } from "@/lib/auth/messages";
+import { getMonthBounds, getPreviousYearMonth, isSunday } from "@/lib/date";
 import { requireRole } from "@/lib/permissions";
 import {
   appSettingsSchema,
   createParentSchema,
   feeSettingSchema,
   managerSchema,
+  monthlyHistoryCaptureSchema,
   resetPasswordSchema,
   studentSchema,
   updateManagerStatusSchema,
   updateParentSchema,
 } from "@/lib/validators/admin";
 import { normalizeUsername, slugify } from "@/lib/utils";
+import type { AttendanceRecord, FeeSetting, Parent, Student } from "@/lib/types";
 
 export type CredentialActionState = {
   ok?: boolean;
@@ -386,6 +389,155 @@ export async function upsertFeeSettingAction(formData: FormData) {
   if (error) redirectWithMessage("/admin/fee-settings", "error", "Không lưu được cấu hình phí");
   revalidatePath("/admin/fee-settings");
   redirectWithMessage("/admin/fee-settings", "success", "Đã lưu cấu hình phí");
+}
+
+type CaptureStudent = Student & {
+  parents: Pick<Parent, "id" | "full_name" | "username" | "phone" | "email"> | null;
+};
+
+type AbsenceBucket = {
+  excusedDates: string[];
+  unexcusedDates: string[];
+};
+
+function emptyAbsenceBucket(): AbsenceBucket {
+  return { excusedDates: [], unexcusedDates: [] };
+}
+
+export async function captureMonthlyHistoryAction(formData: FormData) {
+  const profile = await requireRole("admin");
+  const parsed = monthlyHistoryCaptureSchema.safeParse({
+    billing_year_month: formData.get("billing_year_month"),
+    note: formData.get("note"),
+  });
+
+  if (!parsed.success) {
+    redirectWithMessage("/admin/monthly-history", "error", parsed.error.issues[0]?.message || "Dữ liệu capture chưa hợp lệ");
+  }
+
+  const billingYearMonth = parsed.data.billing_year_month;
+  const previousYearMonth = getPreviousYearMonth(billingYearMonth);
+  const { start, end } = getMonthBounds(previousYearMonth);
+  const supabase = await createClient();
+
+  const [{ data: students }, { data: feeSetting }] = await Promise.all([
+    supabase.from("students").select("*, parents(id,full_name,username,phone,email)").eq("status", "active").order("full_name"),
+    supabase.from("fee_settings").select("*").eq("year_month", billingYearMonth).maybeSingle(),
+  ]);
+
+  const studentRows = (students || []) as CaptureStudent[];
+  if (studentRows.length === 0) {
+    redirectWithMessage("/admin/monthly-history", "error", "Chưa có học sinh active để capture");
+  }
+
+  const studentIds = studentRows.map((student) => student.id);
+  const { data: attendance } = await supabase
+    .from("attendance_records")
+    .select("*")
+    .gte("attendance_date", start)
+    .lt("attendance_date", end)
+    .in("student_id", studentIds)
+    .in("status", ["excused_absent", "unexcused_absent"])
+    .order("attendance_date", { ascending: true });
+
+  const absencesByStudent = new Map<string, AbsenceBucket>();
+  for (const record of ((attendance || []) as AttendanceRecord[]).filter((item) => !isSunday(item.attendance_date))) {
+    const bucket = absencesByStudent.get(record.student_id) || emptyAbsenceBucket();
+    if (record.status === "excused_absent") bucket.excusedDates.push(record.attendance_date);
+    if (record.status === "unexcused_absent") bucket.unexcusedDates.push(record.attendance_date);
+    absencesByStudent.set(record.student_id, bucket);
+  }
+
+  const fee = (feeSetting || null) as FeeSetting | null;
+  const absenceDeductionAmount = fee?.absence_deduction_amount ?? null;
+  const rows = studentRows.map((student) => {
+    const bucket = absencesByStudent.get(student.id) || emptyAbsenceBucket();
+    const packageAmount = fee ? (student.boarding_package_type === "saturday" ? fee.saturday_package_amount : fee.weekday_package_amount) : null;
+    const billingAmount =
+      packageAmount === null || absenceDeductionAmount === null
+        ? null
+        : Math.max(packageAmount - bucket.excusedDates.length * absenceDeductionAmount, 0);
+
+    return {
+      student_id: student.id,
+      parent_id: student.parent_id,
+      student_full_name: student.full_name,
+      student_nickname: student.nickname,
+      date_of_birth: student.date_of_birth,
+      gender: student.gender,
+      school_name: student.school_name,
+      class_name: student.class_name,
+      health_notes: student.health_notes,
+      allergy_notes: student.allergy_notes,
+      pickup_notes: student.pickup_notes,
+      boarding_package_type: student.boarding_package_type,
+      student_status: student.status,
+      parent_full_name: student.parents?.full_name || null,
+      parent_username: student.parents?.username || null,
+      parent_phone: student.parents?.phone || null,
+      parent_email: student.parents?.email || null,
+      excused_absent_count: bucket.excusedDates.length,
+      unexcused_absent_count: bucket.unexcusedDates.length,
+      excused_absent_dates: bucket.excusedDates,
+      unexcused_absent_dates: bucket.unexcusedDates,
+      package_amount: packageAmount,
+      excused_deduction_amount: absenceDeductionAmount,
+      billing_amount: billingAmount,
+    };
+  });
+
+  const excusedAbsenceTotal = rows.reduce((sum, row) => sum + row.excused_absent_count, 0);
+  const unexcusedAbsenceTotal = rows.reduce((sum, row) => sum + row.unexcused_absent_count, 0);
+  const packageTotal = fee ? rows.reduce((sum, row) => sum + (row.package_amount || 0), 0) : null;
+  const excusedDeductionTotal =
+    fee && absenceDeductionAmount !== null ? rows.reduce((sum, row) => sum + row.excused_absent_count * absenceDeductionAmount, 0) : null;
+  const billingTotal = fee ? rows.reduce((sum, row) => sum + (row.billing_amount || 0), 0) : null;
+
+  const { data: snapshot, error: snapshotError } = await supabase
+    .from("monthly_history_snapshots")
+    .insert({
+      billing_year_month: billingYearMonth,
+      previous_year_month: previousYearMonth,
+      captured_by: profile.id,
+      note: parsed.data.note?.trim() || null,
+      student_count: rows.length,
+      excused_absence_total: excusedAbsenceTotal,
+      unexcused_absence_total: unexcusedAbsenceTotal,
+      package_total: packageTotal,
+      excused_deduction_total: excusedDeductionTotal,
+      billing_total: billingTotal,
+      saturday_package_amount: fee?.saturday_package_amount ?? null,
+      weekday_package_amount: fee?.weekday_package_amount ?? null,
+      absence_deduction_amount: absenceDeductionAmount,
+      currency: fee?.currency ?? "VND",
+    })
+    .select("id")
+    .single();
+
+  if (snapshotError || !snapshot) {
+    redirectWithMessage("/admin/monthly-history", "error", "Không tạo được lịch sử capture");
+  }
+
+  const { error: rowsError } = await supabase.from("monthly_history_students").insert(rows.map((row) => ({ ...row, snapshot_id: snapshot.id })));
+  if (rowsError) {
+    await supabase.from("monthly_history_snapshots").delete().eq("id", snapshot.id);
+    redirectWithMessage("/admin/monthly-history", "error", "Không lưu được chi tiết học sinh của lịch sử capture");
+  }
+
+  await supabase.from("audit_logs").insert({
+    actor_profile_id: profile.id,
+    action: "capture_monthly_history",
+    entity_type: "monthly_history_snapshots",
+    entity_id: snapshot.id,
+    metadata: {
+      billing_year_month: billingYearMonth,
+      previous_year_month: previousYearMonth,
+      student_count: rows.length,
+    },
+  });
+
+  revalidatePath("/admin/monthly-history");
+  redirect(`/admin/monthly-history/${snapshot.id}?success=${encodeURIComponent(`Đã capture ${rows.length} học sinh cho tháng ${billingYearMonth}`)}`);
 }
 
 export async function updateAppSettingsAction(formData: FormData) {

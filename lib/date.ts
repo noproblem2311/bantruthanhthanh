@@ -52,6 +52,12 @@ export function getYearMonth(date: string | Date = new Date()) {
   return `${parts.year}-${parts.month}`;
 }
 
+export function getPreviousYearMonth(yearMonth: string) {
+  const [year, month] = yearMonth.split("-").map(Number);
+  if (month === 1) return `${year - 1}-12`;
+  return `${year}-${String(month - 1).padStart(2, "0")}`;
+}
+
 export function canSubmitOffRequest(offDate: string, now = new Date()) {
   const today = getVietnamToday(now);
   if (offDate < today) return false;

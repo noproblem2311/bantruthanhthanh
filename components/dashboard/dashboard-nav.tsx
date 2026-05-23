@@ -5,6 +5,7 @@ import {
   CalendarCheck,
   ClipboardList,
   CreditCard,
+  History,
   Home,
   KeyRound,
   Settings,
@@ -18,7 +19,7 @@ import { PendingLink } from "@/components/ui/pending-link";
 export type NavItem = {
   href: string;
   label: string;
-  icon: "home" | "children" | "attendance" | "fees" | "profile" | "settings" | "parents" | "security" | "requests";
+  icon: "home" | "children" | "attendance" | "fees" | "history" | "profile" | "settings" | "parents" | "security" | "requests";
 };
 
 const icons = {
@@ -26,6 +27,7 @@ const icons = {
   children: UsersRound,
   attendance: CalendarCheck,
   fees: CreditCard,
+  history: History,
   profile: UserRound,
   settings: Settings,
   parents: UsersRound,
