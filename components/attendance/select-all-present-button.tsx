@@ -16,6 +16,7 @@ export function SelectAllPresentButton({ formId }: { formId: string }) {
         form.querySelectorAll<HTMLInputElement>('input[data-status-value="present"][data-current-status="not_marked"]').forEach((radio) => {
           radio.checked = true;
         });
+        form.dispatchEvent(new Event("change", { bubbles: true }));
       }}
     >
       <Users className="h-4 w-4" />
