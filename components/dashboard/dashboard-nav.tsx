@@ -10,6 +10,7 @@ import {
   KeyRound,
   Settings,
   ShieldCheck,
+  ShoppingBasket,
   UserRound,
   UsersRound,
 } from "lucide-react";
@@ -19,7 +20,7 @@ import { PendingLink } from "@/components/ui/pending-link";
 export type NavItem = {
   href: string;
   label: string;
-  icon: "home" | "children" | "attendance" | "fees" | "history" | "profile" | "settings" | "parents" | "security" | "requests";
+  icon: "home" | "children" | "attendance" | "fees" | "history" | "profile" | "settings" | "parents" | "security" | "requests" | "ingredients";
 };
 
 const icons = {
@@ -33,6 +34,7 @@ const icons = {
   parents: UsersRound,
   security: ShieldCheck,
   requests: ClipboardList,
+  ingredients: ShoppingBasket,
 };
 
 export function DashboardNav({ items }: { items: NavItem[] }) {

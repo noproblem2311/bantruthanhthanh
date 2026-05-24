@@ -142,3 +142,14 @@ export type MonthlyHistoryStudent = {
   billing_amount: number | null;
   created_at: string;
 };
+
+export type IngredientExpense = {
+  id: string;
+  expense_date: string;
+  ingredient_name: string;
+  description: string | null;
+  price: number;
+  recorded_by: string | null;
+  created_at: string;
+  updated_at: string;
+};

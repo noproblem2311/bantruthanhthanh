@@ -8,6 +8,7 @@ const navItems: NavItem[] = [
   { href: "/admin/students", label: "Học sinh", icon: "children" },
   { href: "/admin/managers", label: "Quản lý", icon: "security" },
   { href: "/admin/attendance", label: "Điểm danh", icon: "attendance" },
+  { href: "/admin/ingredients", label: "Nguyên liệu", icon: "ingredients" },
   { href: "/admin/off-requests", label: "Đơn xin nghỉ", icon: "requests" },
   { href: "/admin/password-reset-requests", label: "Cấp lại mật khẩu", icon: "security" },
   { href: "/admin/fee-settings", label: "Cấu hình phí", icon: "fees" },
