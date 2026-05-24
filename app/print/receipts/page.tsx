@@ -90,6 +90,7 @@ function buildManualReceipts(batch: ReceiptBatch, rows: ReceiptItem[]) {
     lines.push(
       { label: "Tiền học Tin học", amount: row.computer_amount },
       { label: "Tiền học Tiếng Anh", amount: row.english_amount },
+      { label: "Tiền ăn tháng trước còn thừa (18000đ/ngày)", amount: 0 },
     );
 
     if (row.other_amount !== 0) {
