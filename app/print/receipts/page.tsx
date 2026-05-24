@@ -42,6 +42,7 @@ function getReceiptTotal(lines: ReceiptLine[]) {
 const zeroFeeLines: ReceiptLine[] = [
   { label: "Tiền học Tin học", amount: 0 },
   { label: "Tiền học Tiếng Anh", amount: 0 },
+  { label: "Tiền ăn tháng trước còn thừa (18000đ/ngày)", amount: 0 },
 ];
 
 function buildHistoryReceipts(snapshot: MonthlyHistorySnapshot, rows: MonthlyHistoryStudent[]) {
