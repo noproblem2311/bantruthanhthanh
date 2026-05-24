@@ -39,6 +39,11 @@ function getReceiptTotal(lines: ReceiptLine[]) {
   return lines.reduce((sum, line) => sum + line.amount, 0);
 }
 
+const zeroFeeLines: ReceiptLine[] = [
+  { label: "Tiền học Tin học/Python", amount: 0 },
+  { label: "Tiền học Tiếng Anh", amount: 0 },
+];
+
 function buildHistoryReceipts(snapshot: MonthlyHistorySnapshot, rows: MonthlyHistoryStudent[]) {
   return rows.map((row, index): Receipt => {
     const packageAmount = row.package_amount || 0;
@@ -59,6 +64,7 @@ function buildHistoryReceipts(snapshot: MonthlyHistorySnapshot, rows: MonthlyHis
     if (lines.length === 0 && row.billing_amount !== null) {
       lines.push({ label: "Số tiền bán trú", amount: row.billing_amount });
     }
+    lines.push(...zeroFeeLines);
 
     const unexcusedNote = row.unexcused_absent_count > 0 ? `Nghỉ không phép ${row.unexcused_absent_count} buổi.` : "";
 
@@ -78,12 +84,16 @@ function buildHistoryReceipts(snapshot: MonthlyHistorySnapshot, rows: MonthlyHis
 
 function buildManualReceipts(batch: ReceiptBatch, rows: ReceiptItem[]) {
   return rows.map((row, index): Receipt => {
-    const lines: ReceiptLine[] = [
-      { label: "Tiền gói bán trú", amount: row.boarding_amount },
-      { label: "Tiền học thứ 7", amount: row.saturday_amount },
+    const lines: ReceiptLine[] = [{ label: "Tiền gói bán trú", amount: row.boarding_amount }];
+
+    if (row.studies_saturday || row.saturday_amount !== 0) {
+      lines.push({ label: "Tiền học thứ 7", amount: row.saturday_amount });
+    }
+
+    lines.push(
       { label: "Tiền học Tin học/Python", amount: row.computer_amount },
       { label: "Tiền học Tiếng Anh", amount: row.english_amount },
-    ].filter((line) => line.amount !== 0);
+    );
 
     if (row.other_amount !== 0) {
       lines.push({ label: row.other_label || "Khoản cộng/trừ khác", amount: row.other_amount });
@@ -157,10 +167,16 @@ function ReceiptCard({ receipt }: { receipt: Receipt }) {
         </tbody>
       </table>
 
-      {receipt.note ? <p className="receipt-note">Ghi chú: {receipt.note}</p> : null}
+      <div className="receipt-note">
+        <p>
+          <strong>Ghi chú:</strong> - Phụ huynh nộp đủ tiền vào ngày 9 hằng tháng.
+        </p>
+        <p>- Hai anh chị em ruột được giảm 100000đ.</p>
+        <p>- Phụ huynh có thắc mắc gì thì gặp trực tiếp cô Lan hoặc điện thoại số 0392333013 (chủ cơ sở).</p>
+      </div>
 
       <div className="receipt-footer">
-        <p>Phụ huynh vui lòng nộp đủ tiền đúng hạn.</p>
+        <p></p>
         <div>
           <p>Chủ cơ sở</p>
           <strong>Phùng Vũ An Quân</strong>
@@ -336,6 +352,8 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
         .receipt-note {
           margin-top: 8px;
           font-size: 11px;
+          font-style: italic;
+          line-height: 1.35;
         }
 
         .receipt-footer {
