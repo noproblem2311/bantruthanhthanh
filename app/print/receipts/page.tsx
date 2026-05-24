@@ -86,10 +86,6 @@ function buildManualReceipts(batch: ReceiptBatch, rows: ReceiptItem[]) {
   return rows.map((row, index): Receipt => {
     const lines: ReceiptLine[] = [{ label: "Tiền gói bán trú", amount: row.boarding_amount }];
 
-    if (row.studies_saturday || row.saturday_amount !== 0) {
-      lines.push({ label: "Tiền học thứ 7", amount: row.saturday_amount });
-    }
-
     lines.push(
       { label: "Tiền học Tin học", amount: row.computer_amount },
       { label: "Tiền học Tiếng Anh", amount: row.english_amount },
