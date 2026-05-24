@@ -40,7 +40,7 @@ function getReceiptTotal(lines: ReceiptLine[]) {
 }
 
 const zeroFeeLines: ReceiptLine[] = [
-  { label: "Tiền học Tin học/Python", amount: 0 },
+  { label: "Tiền học Tin học", amount: 0 },
   { label: "Tiền học Tiếng Anh", amount: 0 },
 ];
 
@@ -91,7 +91,7 @@ function buildManualReceipts(batch: ReceiptBatch, rows: ReceiptItem[]) {
     }
 
     lines.push(
-      { label: "Tiền học Tin học/Python", amount: row.computer_amount },
+      { label: "Tiền học Tin học", amount: row.computer_amount },
       { label: "Tiền học Tiếng Anh", amount: row.english_amount },
     );
 
