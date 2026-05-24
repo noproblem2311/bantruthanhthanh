@@ -153,3 +153,33 @@ export type IngredientExpense = {
   created_at: string;
   updated_at: string;
 };
+
+export type ReceiptBatch = {
+  id: string;
+  source_type: "manual";
+  title: string;
+  billing_year_month: string;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ReceiptItem = {
+  id: string;
+  batch_id: string;
+  sort_order: number;
+  student_name: string;
+  class_name: string | null;
+  start_date: string | null;
+  studies_saturday: boolean;
+  boarding_amount: number;
+  saturday_amount: number;
+  computer_amount: number;
+  english_amount: number;
+  other_label: string | null;
+  other_amount: number;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+};

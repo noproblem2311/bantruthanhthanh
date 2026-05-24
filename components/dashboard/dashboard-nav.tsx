@@ -8,6 +8,7 @@ import {
   History,
   Home,
   KeyRound,
+  ReceiptText,
   Settings,
   ShieldCheck,
   ShoppingBasket,
@@ -20,7 +21,19 @@ import { PendingLink } from "@/components/ui/pending-link";
 export type NavItem = {
   href: string;
   label: string;
-  icon: "home" | "children" | "attendance" | "fees" | "history" | "profile" | "settings" | "parents" | "security" | "requests" | "ingredients";
+  icon:
+    | "home"
+    | "children"
+    | "attendance"
+    | "fees"
+    | "history"
+    | "profile"
+    | "settings"
+    | "parents"
+    | "security"
+    | "requests"
+    | "ingredients"
+    | "receipts";
 };
 
 const icons = {
@@ -35,6 +48,7 @@ const icons = {
   security: ShieldCheck,
   requests: ClipboardList,
   ingredients: ShoppingBasket,
+  receipts: ReceiptText,
 };
 
 export function DashboardNav({ items }: { items: NavItem[] }) {
