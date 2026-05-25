@@ -1,6 +1,5 @@
 import { CreditCard, ReceiptText, Save, UsersRound } from "lucide-react";
 import { saveMonthlyTuitionRecordsAction } from "@/lib/actions/admin";
-import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/dashboard/stat-card";
@@ -13,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/server";
 import { formatVietnamDateTime, getYearMonth } from "@/lib/date";
 import { getMessageParam } from "@/lib/utils";
-import type { MonthlyHistorySnapshot, MonthlyHistoryStudent, MonthlyTuitionRecord, Parent, Student } from "@/lib/types";
+import type { MonthlyTuitionRecord, Parent, Student } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 type TuitionBasePath = "/admin/tuition" | "/manager/tuition";
@@ -23,7 +22,7 @@ type StudentWithParent = Student & {
 
 type TuitionPageRow = {
   key: string;
-  studentId: string | null;
+  studentId: string;
   fullName: string;
   className: string | null;
   parentName: string | null;
@@ -33,31 +32,10 @@ type TuitionPageRow = {
   receiptSent: boolean;
   note: string;
   updatedAt: string | null;
-  source: "history" | "active" | "saved";
 };
 
 function getMonthParam(value: string | string[] | undefined) {
   return typeof value === "string" && /^\d{4}-\d{2}$/.test(value) ? value : getYearMonth();
-}
-
-function buildHistoryRows(historyStudents: MonthlyHistoryStudent[], recordsByStudent: Map<string, MonthlyTuitionRecord>) {
-  return historyStudents.map((student): TuitionPageRow => {
-    const record = student.student_id ? recordsByStudent.get(student.student_id) : undefined;
-    return {
-      key: student.student_id || student.id,
-      studentId: student.student_id,
-      fullName: student.student_full_name,
-      className: student.class_name,
-      parentName: student.parent_full_name,
-      parentUsername: student.parent_username,
-      parentPhone: student.parent_phone,
-      isPaid: record?.is_paid || false,
-      receiptSent: record?.receipt_sent || false,
-      note: record?.note || "",
-      updatedAt: record?.updated_at || null,
-      source: "history",
-    };
-  });
 }
 
 function buildActiveRows(students: StudentWithParent[], recordsByStudent: Map<string, MonthlyTuitionRecord>) {
@@ -75,31 +53,8 @@ function buildActiveRows(students: StudentWithParent[], recordsByStudent: Map<st
       receiptSent: record?.receipt_sent || false,
       note: record?.note || "",
       updatedAt: record?.updated_at || null,
-      source: "active",
     };
   });
-}
-
-function buildSavedOnlyRows(records: MonthlyTuitionRecord[], rosterStudentIds: Set<string>, studentsById: Map<string, StudentWithParent>) {
-  return records
-    .filter((record) => !rosterStudentIds.has(record.student_id))
-    .map((record): TuitionPageRow => {
-      const student = studentsById.get(record.student_id);
-      return {
-        key: record.id,
-        studentId: record.student_id,
-        fullName: student?.full_name || "Không tìm thấy học sinh",
-        className: student?.class_name || null,
-        parentName: student?.parents?.full_name || null,
-        parentUsername: student?.parents?.username || null,
-        parentPhone: student?.parents?.phone || null,
-        isPaid: record.is_paid,
-        receiptSent: record.receipt_sent,
-        note: record.note || "",
-        updatedAt: record.updated_at,
-        source: "saved",
-      };
-    });
 }
 
 export async function MonthlyTuitionPage({ searchParams, basePath }: { searchParams: SearchParams; basePath: TuitionBasePath }) {
@@ -107,49 +62,18 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
   const billingYearMonth = getMonthParam(params.month);
   const supabase = await createClient();
 
-  const [{ data: latestSnapshot }, { data: tuitionRecords }] = await Promise.all([
+  const [{ data: students }, { data: tuitionRecords }] = await Promise.all([
     supabase
-      .from("monthly_history_snapshots")
-      .select("*")
-      .eq("billing_year_month", billingYearMonth)
-      .order("captured_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase.from("monthly_tuition_records").select("*").eq("billing_year_month", billingYearMonth).order("updated_at", { ascending: false }),
-  ]);
-
-  const snapshot = (latestSnapshot || null) as MonthlyHistorySnapshot | null;
-  const records = (tuitionRecords || []) as MonthlyTuitionRecord[];
-  const recordsByStudent = new Map(records.map((record) => [record.student_id, record]));
-
-  let rows: TuitionPageRow[] = [];
-  if (snapshot) {
-    const { data: historyStudents } = await supabase
-      .from("monthly_history_students")
-      .select("*")
-      .eq("snapshot_id", snapshot.id)
-      .order("student_full_name");
-    rows = buildHistoryRows((historyStudents || []) as MonthlyHistoryStudent[], recordsByStudent);
-  } else {
-    const { data: students } = await supabase
       .from("students")
       .select("*, parents(id,full_name,username,phone)")
       .eq("status", "active")
-      .order("full_name");
-    rows = buildActiveRows((students || []) as StudentWithParent[], recordsByStudent);
-  }
+      .order("full_name"),
+    supabase.from("monthly_tuition_records").select("*").eq("billing_year_month", billingYearMonth).order("updated_at", { ascending: false }),
+  ]);
 
-  const rosterStudentIds = new Set(rows.map((row) => row.studentId).filter((studentId): studentId is string => Boolean(studentId)));
-  const savedOnlyStudentIds = records.map((record) => record.student_id).filter((studentId) => !rosterStudentIds.has(studentId));
-  let savedOnlyStudentsById = new Map<string, StudentWithParent>();
-  if (savedOnlyStudentIds.length > 0) {
-    const { data: savedOnlyStudents } = await supabase
-      .from("students")
-      .select("*, parents(id,full_name,username,phone)")
-      .in("id", savedOnlyStudentIds);
-    savedOnlyStudentsById = new Map(((savedOnlyStudents || []) as StudentWithParent[]).map((student) => [student.id, student]));
-  }
-  rows = [...rows, ...buildSavedOnlyRows(records, rosterStudentIds, savedOnlyStudentsById)];
+  const records = (tuitionRecords || []) as MonthlyTuitionRecord[];
+  const recordsByStudent = new Map(records.map((record) => [record.student_id, record]));
+  const rows = buildActiveRows((students || []) as StudentWithParent[], recordsByStudent);
 
   const paidCount = rows.filter((row) => row.isPaid).length;
   const receiptSentCount = rows.filter((row) => row.receiptSent).length;
@@ -173,12 +97,6 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
           <SubmitButton pendingText="Đang xem...">Xem tháng</SubmitButton>
         </form>
       </div>
-
-      {snapshot ? (
-        <Alert variant="info">Đang dùng danh sách học sinh từ history capture lúc {formatVietnamDateTime(snapshot.captured_at)}.</Alert>
-      ) : (
-        <Alert variant="warning">Tháng này chưa có history capture, hệ thống đang dùng danh sách học sinh active hiện tại.</Alert>
-      )}
 
       <div className="grid gap-3 md:grid-cols-4">
         <StatCard title="Tổng học sinh" value={rows.length} icon={UsersRound} />
@@ -214,7 +132,6 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
                       <p className="font-medium">{row.fullName}</p>
                       <div className="mt-1 flex flex-wrap gap-1">
                         <Badge variant="muted">{row.className || "Chưa có lớp"}</Badge>
-                        {row.source === "saved" ? <Badge variant="info">Đã lưu riêng</Badge> : null}
                       </div>
                     </TD>
                     <TD>
@@ -222,48 +139,31 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
                       <p className="text-xs text-muted-foreground">{row.parentPhone || "Chưa có SĐT"}</p>
                     </TD>
                     <TD>
-                      {row.studentId ? (
-                        <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
-                          <input
-                            type="checkbox"
-                            name={`is_paid_${row.studentId}`}
-                            value="paid"
-                            defaultChecked={row.isPaid}
-                            className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-                          />
-                          Đã nộp
-                        </label>
-                      ) : (
-                        <Badge variant={row.isPaid ? "success" : "warning"}>{row.isPaid ? "Đã nộp" : "Chưa nộp"}</Badge>
-                      )}
-                    </TD>
-                    <TD>
-                      {row.studentId ? (
-                        <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
-                          <input
-                            type="checkbox"
-                            name={`receipt_sent_${row.studentId}`}
-                            value="sent"
-                            defaultChecked={row.receiptSent}
-                            className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-                          />
-                          Đã gửi
-                        </label>
-                      ) : (
-                        <Badge variant={row.receiptSent ? "success" : "warning"}>{row.receiptSent ? "Đã gửi" : "Chưa gửi"}</Badge>
-                      )}
-                    </TD>
-                    <TD>
-                      {row.studentId ? (
-                        <Textarea
-                          name={`note_${row.studentId}`}
-                          defaultValue={row.note}
-                          className="min-h-12 resize-y"
-                          placeholder="Ghi chú"
+                      <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                        <input
+                          type="checkbox"
+                          name={`is_paid_${row.studentId}`}
+                          value="paid"
+                          defaultChecked={row.isPaid}
+                          className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
                         />
-                      ) : (
-                        <p className="text-sm text-muted-foreground">{row.note || "Không có"}</p>
-                      )}
+                        Đã nộp
+                      </label>
+                    </TD>
+                    <TD>
+                      <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                        <input
+                          type="checkbox"
+                          name={`receipt_sent_${row.studentId}`}
+                          value="sent"
+                          defaultChecked={row.receiptSent}
+                          className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                        />
+                        Đã gửi
+                      </label>
+                    </TD>
+                    <TD>
+                      <Textarea name={`note_${row.studentId}`} defaultValue={row.note} className="min-h-12 resize-y" placeholder="Ghi chú" />
                     </TD>
                     <TD className="text-sm text-muted-foreground">{row.updatedAt ? formatVietnamDateTime(row.updatedAt) : "Chưa lưu"}</TD>
                   </tr>
