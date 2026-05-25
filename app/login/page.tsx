@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageMessage } from "@/components/ui/message";
+import { PasswordInput } from "@/components/ui/password-input";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -94,7 +95,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="parent_password">Mật khẩu</Label>
-                    <Input id="parent_password" name="password" type="password" autoComplete="current-password" required />
+                    <PasswordInput id="parent_password" name="password" autoComplete="current-password" required />
                   </div>
                   <SubmitButton className="w-full">
                     <LockKeyhole className="h-4 w-4" />
@@ -121,7 +122,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="staff_password">Mật khẩu</Label>
-                    <Input id="staff_password" name="password" type="password" autoComplete="current-password" required />
+                    <PasswordInput id="staff_password" name="password" autoComplete="current-password" required />
                   </div>
                   <SubmitButton variant="secondary" className="w-full">
                     <LockKeyhole className="h-4 w-4" />
