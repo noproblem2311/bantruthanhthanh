@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import {
   CalendarCheck,
+  CalendarClock,
   ClipboardList,
   CreditCard,
   History,
@@ -33,7 +34,8 @@ export type NavItem = {
     | "security"
     | "requests"
     | "ingredients"
-    | "receipts";
+    | "receipts"
+    | "timekeeping";
 };
 
 const icons = {
@@ -49,6 +51,7 @@ const icons = {
   requests: ClipboardList,
   ingredients: ShoppingBasket,
   receipts: ReceiptText,
+  timekeeping: CalendarClock,
 };
 
 export function DashboardNav({ items }: { items: NavItem[] }) {

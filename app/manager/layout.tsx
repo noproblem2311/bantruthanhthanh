@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/permissions";
 
 const navItems: NavItem[] = [
   { href: "/manager", label: "Tổng quan", icon: "home" },
+  { href: "/manager/timekeeping", label: "Chấm công", icon: "timekeeping" },
   { href: "/manager/attendance", label: "Điểm danh", icon: "attendance" },
   { href: "/manager/ingredients", label: "Nguyên liệu", icon: "ingredients" },
   { href: "/manager/off-requests", label: "Đơn xin nghỉ", icon: "requests" },

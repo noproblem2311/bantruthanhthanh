@@ -184,6 +184,16 @@ export type ReceiptItem = {
   updated_at: string;
 };
 
+export type ManagerWorkSession = {
+  id: string;
+  profile_id: string;
+  work_date: string;
+  morning_worked: boolean;
+  afternoon_worked: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export type MonthlyTuitionRecord = {
   id: string;
   billing_year_month: string;
