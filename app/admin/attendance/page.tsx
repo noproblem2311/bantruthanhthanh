@@ -22,7 +22,6 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
   const date = getDateOrVietnamToday(params.date);
   const q = typeof params.q === "string" ? params.q.trim().toLowerCase() : "";
   const status = typeof params.status === "string" ? params.status : "all";
-  const successMessage = getMessageParam(params, "success");
   const errorMessage = getMessageParam(params, "error");
   const monthBounds = getMonthBounds(date.slice(0, 7));
   const supabase = await createClient();
@@ -52,7 +51,7 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
 
   return (
     <div className="space-y-5">
-      <PageMessage success={successMessage} error={errorMessage} />
+      <PageMessage success={getMessageParam(params, "success")} error={errorMessage} />
       <AttendanceCalendar
         selectedDate={date}
         basePath="/admin/attendance"
@@ -70,7 +69,6 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
         records={(records || []) as AttendanceRecord[]}
         approvedOffStudentIds={approvedOffStudentIds}
         redirectTo={redirectTo}
-        clearDraftOnSuccess={Boolean(successMessage)}
       />
     </div>
   );

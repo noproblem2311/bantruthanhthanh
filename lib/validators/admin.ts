@@ -27,7 +27,7 @@ export const resetPasswordSchema = z.object({
 export const studentSchema = z.object({
   id: z.string().uuid().optional().or(z.literal("")),
   parent_id: z.string().uuid("Vui lòng chọn phụ huynh"),
-  full_name: z.string().min(2, "Vui lòng nhập tên học sinh"),
+  full_name: z.string().trim().min(2, "Vui lòng nhập tên học sinh tối thiểu 2 ký tự"),
   nickname: z.string().optional(),
   date_of_birth: z.string().optional(),
   gender: z.string().optional(),

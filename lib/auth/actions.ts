@@ -15,13 +15,14 @@ function formPath(formData: FormData, fallback: string) {
 }
 
 export async function loginParentAction(formData: FormData) {
+  const path = formPath(formData, "/login?mode=parent");
   const parsed = parentLoginSchema.safeParse({
     username: formData.get("username"),
     password: formData.get("password"),
   });
 
   if (!parsed.success) {
-    redirectWithMessage("/login", "error", parsed.error.issues[0]?.message || "Thông tin đăng nhập không hợp lệ");
+    redirectWithMessage(path, "error", parsed.error.issues[0]?.message || "Thông tin đăng nhập không hợp lệ");
   }
 
   const usernameNormalized = normalizeUsername(parsed.data.username);
@@ -33,7 +34,7 @@ export async function loginParentAction(formData: FormData) {
     .maybeSingle();
 
   if (parentError || !parent || parent.status !== "active") {
-    redirectWithMessage("/login", "error", "Username hoặc mật khẩu không đúng");
+    redirectWithMessage(path, "error", "Username hoặc mật khẩu không đúng");
   }
 
   const supabase = await createClient();
@@ -43,7 +44,7 @@ export async function loginParentAction(formData: FormData) {
   });
 
   if (error) {
-    redirectWithMessage("/login", "error", "Username hoặc mật khẩu không đúng");
+    redirectWithMessage(path, "error", "Username hoặc mật khẩu không đúng");
   }
 
   revalidatePath("/", "layout");
@@ -51,32 +52,33 @@ export async function loginParentAction(formData: FormData) {
 }
 
 export async function loginStaffAction(formData: FormData) {
+  const path = formPath(formData, "/login?mode=internal");
   const parsed = staffLoginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
 
   if (!parsed.success) {
-    redirectWithMessage("/login", "error", parsed.error.issues[0]?.message || "Thông tin đăng nhập không hợp lệ");
+    redirectWithMessage(path, "error", parsed.error.issues[0]?.message || "Thông tin đăng nhập không hợp lệ");
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
-    redirectWithMessage("/login", "error", "Email hoặc mật khẩu không đúng");
+    redirectWithMessage(path, "error", "Email hoặc mật khẩu không đúng");
   }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirectWithMessage("/login", "error", "Không lấy được thông tin tài khoản");
+  if (!user) redirectWithMessage(path, "error", "Không lấy được thông tin tài khoản");
 
   const { data: profile } = await supabase.from("profiles").select("role,status").eq("auth_user_id", user.id).single();
   if (!profile || profile.status !== "active") {
     await supabase.auth.signOut();
-    redirectWithMessage("/login", "error", "Tài khoản không còn hoạt động");
+    redirectWithMessage(path, "error", "Tài khoản không còn hoạt động");
   }
 
   revalidatePath("/", "layout");

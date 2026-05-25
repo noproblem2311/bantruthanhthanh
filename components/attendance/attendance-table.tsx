@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { AttendanceDraftAutosave } from "./attendance-draft-autosave";
 import { SelectAllPresentButton } from "./select-all-present-button";
 
 export type AttendanceStudent = Student & {
@@ -35,10 +34,9 @@ function AttendanceHiddenFields({ date, redirectTo }: { date: string; redirectTo
   );
 }
 
-function AttendanceActions({ formId, draftKey, clearDraftOnSuccess }: { formId: string; draftKey: string; clearDraftOnSuccess?: boolean }) {
+function AttendanceActions({ formId }: { formId: string }) {
   return (
     <div className="grid gap-2 sm:flex sm:flex-wrap sm:justify-end">
-      <AttendanceDraftAutosave formId={formId} draftKey={draftKey} clearDraftOnSuccess={clearDraftOnSuccess} />
       <SelectAllPresentButton formId={formId} />
       <SubmitButton name="intent" value="save_attendance" pendingText="Đang lưu..." className="w-full sm:w-auto">
         <Save className="h-4 w-4" />
@@ -83,7 +81,6 @@ export function AttendanceTable({
   approvedOffStudentIds,
   redirectTo,
   title = "Điểm danh",
-  clearDraftOnSuccess = false,
 }: {
   date: string;
   students: AttendanceStudent[];
@@ -91,13 +88,11 @@ export function AttendanceTable({
   approvedOffStudentIds: Set<string>;
   redirectTo: string;
   title?: string;
-  clearDraftOnSuccess?: boolean;
 }) {
   const recordMap = new Map(records.map((record) => [record.student_id, record]));
   const formId = `attendance-batch-${date}`;
   const mobileFormId = `${formId}-mobile`;
   const desktopFormId = `${formId}-desktop`;
-  const draftKey = `attendance-draft:${redirectTo.split("?")[0] || "/attendance"}:${date}`;
   const savedRecordCount = records.length;
 
   function getStudentRecordKey(studentId: string, record: AttendanceRecord | undefined) {
@@ -116,7 +111,7 @@ export function AttendanceTable({
                 Ngày {formatVietnamDate(date)}. Đã tải {savedRecordCount} bản ghi đã lưu.
               </CardDescription>
             </div>
-            <AttendanceActions formId={mobileFormId} draftKey={draftKey} clearDraftOnSuccess={clearDraftOnSuccess} />
+            <AttendanceActions formId={mobileFormId} />
           </CardHeader>
           <CardContent className="space-y-3">
             {students.map((student) => {
@@ -148,7 +143,7 @@ export function AttendanceTable({
             {students.length === 0 ? <div className="p-4 text-center text-sm text-muted-foreground">Không có học sinh phù hợp.</div> : null}
             {students.length > 0 ? (
               <div className="border-t pt-4">
-                <AttendanceActions formId={mobileFormId} draftKey={draftKey} clearDraftOnSuccess={clearDraftOnSuccess} />
+                <AttendanceActions formId={mobileFormId} />
               </div>
             ) : null}
           </CardContent>
@@ -165,7 +160,7 @@ export function AttendanceTable({
               Ngày {formatVietnamDate(date)}. Đã tải {savedRecordCount} bản ghi đã lưu. Chỉ “Có mặt” mới được tính phí.
             </CardDescription>
           </div>
-          <AttendanceActions formId={desktopFormId} draftKey={draftKey} clearDraftOnSuccess={clearDraftOnSuccess} />
+          <AttendanceActions formId={desktopFormId} />
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -213,7 +208,7 @@ export function AttendanceTable({
           {students.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Không có học sinh phù hợp.</div> : null}
           {students.length > 0 ? (
             <div className="border-t bg-white p-4">
-              <AttendanceActions formId={desktopFormId} draftKey={draftKey} clearDraftOnSuccess={clearDraftOnSuccess} />
+              <AttendanceActions formId={desktopFormId} />
             </div>
           ) : null}
         </CardContent>

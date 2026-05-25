@@ -61,6 +61,18 @@ const requestedStudents = [
   { fullName: "Nguyễn Hữu Tài", className: "4/4", status: "active", parentUsername: "ph-nguyen-huu-tai-4-4", boardingPackageType: "weekday" },
 ];
 
+const placeholderParent = {
+  fullName: "(chưa cập nhật)",
+  username: "ph-chua-cap-nhat",
+  internalAuthEmail: "parent_ph-chua-cap-nhat@internal.bantru.local",
+};
+
+const extraManagerAccount = {
+  email: "quanly@example.com",
+  password: "quanly123",
+  fullName: "Quản lý",
+};
+
 async function ensureAuthUser(supabase, { email, password, role }) {
   const { data: usersData, error: listError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
   if (listError) throw listError;
@@ -124,6 +136,11 @@ async function main() {
     password: "Manager123456!",
     role: "manager",
   });
+  const extraManagerUser = await ensureAuthUser(supabase, {
+    email: extraManagerAccount.email,
+    password: extraManagerAccount.password,
+    role: "manager",
+  });
   const parentUser = await ensureAuthUser(supabase, {
     email: "parent_phuhuynh01_seed@internal.bantru.local",
     password: "Parent123456!",
@@ -152,6 +169,17 @@ async function main() {
       role: "manager",
       full_name: "Quản lý Demo",
       email: "manager@example.com",
+      status: "active",
+    },
+    { onConflict: "auth_user_id" },
+  );
+
+  await supabase.from("profiles").upsert(
+    {
+      auth_user_id: extraManagerUser.id,
+      role: "manager",
+      full_name: extraManagerAccount.fullName,
+      email: extraManagerAccount.email,
       status: "active",
     },
     { onConflict: "auth_user_id" },
@@ -208,6 +236,20 @@ async function main() {
       });
     }
   }
+
+  await supabase.from("parents").upsert(
+    {
+      full_name: placeholderParent.fullName,
+      username: placeholderParent.username,
+      username_normalized: normalizeUsername(placeholderParent.username),
+      phone: null,
+      email: null,
+      internal_auth_email: placeholderParent.internalAuthEmail,
+      status: "active",
+      profile_completed: false,
+    },
+    { onConflict: "username_normalized" },
+  );
 
   await supabase.from("fee_settings").upsert(
     {
@@ -281,6 +323,7 @@ async function main() {
   console.log("Seed completed");
   console.log("Admin: admin@example.com / Admin123456!");
   console.log("Manager: manager@example.com / Manager123456!");
+  console.log(`Manager: ${extraManagerAccount.email} / ${extraManagerAccount.password}`);
   console.log("Parent: phuhuynh01 / Parent123456!");
 }
 

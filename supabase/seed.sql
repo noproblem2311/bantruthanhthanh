@@ -30,6 +30,7 @@ set fee_per_attendance_day = excluded.fee_per_attendance_day,
 
 with parent_rows(username, full_name, phone, internal_auth_email, status) as (
   values
+    ('ph-chua-cap-nhat', '(chưa cập nhật)'::text, null::text, 'parent_ph-chua-cap-nhat@internal.bantru.local', 'active'),
     ('ph-tu-quynh-1-1', null::text, null::text, 'parent_ph-tu-quynh-1-1@internal.bantru.local', 'active'),
     ('ph-thuy-ngan-1-1', null, null, 'parent_ph-thuy-ngan-1-1@internal.bantru.local', 'active'),
     ('ph-hoang-long-1-1', null, null, 'parent_ph-hoang-long-1-1@internal.bantru.local', 'active'),

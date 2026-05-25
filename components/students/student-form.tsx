@@ -1,4 +1,5 @@
 import { createStudentAction, updateStudentAction } from "@/lib/actions/admin";
+import { Alert } from "@/components/ui/alert";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,9 +9,11 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { Textarea } from "@/components/ui/textarea";
 import { boardingPackageLabels } from "@/lib/labels";
 import type { Parent, Student } from "@/lib/types";
+import { StudentRequiredFieldsAlert } from "./student-required-fields-alert";
 
 export function StudentForm({ student, parents }: { student?: Student; parents: Parent[] }) {
   const action = student ? updateStudentAction : createStudentAction;
+  const formId = student ? `student-form-${student.id}` : "student-form-new";
 
   return (
     <Card>
@@ -19,11 +22,13 @@ export function StudentForm({ student, parents }: { student?: Student; parents: 
         <CardDescription>Gắn học sinh với một phụ huynh để RLS bảo vệ dữ liệu theo gia đình.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={action} className="grid gap-4">
+        <form id={formId} action={action} className="grid gap-4" noValidate>
+          <StudentRequiredFieldsAlert formId={formId} />
           {student ? <input type="hidden" name="id" value={student.id} /> : null}
+          <Alert variant="info">Thông tin tối thiểu cần nhập: Phụ huynh và Tên học sinh. Các field còn lại có thể bổ sung sau.</Alert>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="parent_id">Phụ huynh</Label>
+              <Label htmlFor="parent_id">Phụ huynh *</Label>
               <Select id="parent_id" name="parent_id" defaultValue={student?.parent_id || ""} required>
                 <option value="">Chọn phụ huynh</option>
                 {parents.map((parent) => (
@@ -34,7 +39,7 @@ export function StudentForm({ student, parents }: { student?: Student; parents: 
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="full_name">Tên học sinh</Label>
+              <Label htmlFor="full_name">Tên học sinh *</Label>
               <Input id="full_name" name="full_name" defaultValue={student?.full_name || ""} required />
             </div>
           </div>
