@@ -8,6 +8,7 @@ const navItems: NavItem[] = [
   { href: "/manager/ingredients", label: "Nguyên liệu", icon: "ingredients" },
   { href: "/manager/off-requests", label: "Đơn xin nghỉ", icon: "requests" },
   { href: "/manager/students", label: "Học sinh", icon: "children" },
+  { href: "/manager/tuition", label: "Nộp học phí", icon: "fees" },
 ];
 
 export default async function ManagerLayout({ children }: { children: React.ReactNode }) {

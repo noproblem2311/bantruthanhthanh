@@ -542,10 +542,17 @@ export async function captureMonthlyHistoryAction(formData: FormData) {
 }
 
 export async function saveMonthlyTuitionRecordsAction(formData: FormData) {
-  const profile = await requireRole("admin");
+  const profile = await requireRole(["admin", "manager"]);
   const rawMonth = formData.get("billing_year_month");
   const pathMonth = typeof rawMonth === "string" && /^\d{4}-\d{2}$/.test(rawMonth) ? rawMonth : getYearMonth();
-  const path = `/admin/tuition?month=${encodeURIComponent(pathMonth)}`;
+  const fallbackPath = profile.role === "manager" ? `/manager/tuition?month=${encodeURIComponent(pathMonth)}` : `/admin/tuition?month=${encodeURIComponent(pathMonth)}`;
+  const requestedPath = formData.get("redirect_to");
+  const allowedPath = profile.role === "manager" ? "/manager/tuition" : "/admin/tuition";
+  const path =
+    typeof requestedPath === "string" &&
+    (requestedPath.startsWith(`${allowedPath}?`) || requestedPath === allowedPath)
+      ? requestedPath
+      : fallbackPath;
   const parsed = monthlyTuitionSaveSchema.safeParse({
     billing_year_month: rawMonth,
   });
@@ -559,21 +566,6 @@ export async function saveMonthlyTuitionRecordsAction(formData: FormData) {
   );
   if (studentIds.length === 0) {
     redirectWithMessage(path, "error", "Không có học sinh để lưu học phí");
-  }
-
-  const supabase = await createClient();
-  const { data: students, error: studentsError } = await supabase
-    .from("students")
-    .select("id")
-    .in("id", studentIds);
-
-  if (studentsError) {
-    redirectWithMessage(path, "error", "Không đọc được danh sách học sinh");
-  }
-
-  const existingStudentIds = new Set((students || []).map((student) => (student as Pick<Student, "id">).id));
-  if (studentIds.some((studentId) => !existingStudentIds.has(studentId))) {
-    redirectWithMessage(path, "error", "Có học sinh không còn tồn tại, vui lòng tải lại trang");
   }
 
   const rows = studentIds.map((studentId) => {
@@ -590,6 +582,7 @@ export async function saveMonthlyTuitionRecordsAction(formData: FormData) {
     };
   });
 
+  const supabase = await createClient();
   const { error } = await supabase.from("monthly_tuition_records").upsert(rows, { onConflict: "billing_year_month,student_id" });
   if (error) {
     redirectWithMessage(path, "error", "Không lưu được học phí tháng");
@@ -608,6 +601,7 @@ export async function saveMonthlyTuitionRecordsAction(formData: FormData) {
   });
 
   revalidatePath("/admin/tuition");
+  revalidatePath("/manager/tuition");
   redirectWithMessage(path, "success", `Đã lưu học phí tháng ${parsed.data.billing_year_month} cho ${rows.length} học sinh`);
 }
 
