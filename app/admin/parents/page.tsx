@@ -3,10 +3,8 @@ import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ClientSearch } from "@/components/ui/client-search";
 import { PageMessage } from "@/components/ui/message";
-import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { getMessageParam } from "@/lib/utils";
@@ -16,11 +14,8 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function AdminParentsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const q = typeof params.q === "string" ? params.q.trim() : "";
   const supabase = await createClient();
-  let query = supabase.from("parents").select("*, students(id)").order("created_at", { ascending: false });
-  if (q) query = query.or(`full_name.ilike.%${q}%,username.ilike.%${q}%,phone.ilike.%${q}%`);
-  const { data: parents } = await query;
+  const { data: parents } = await supabase.from("parents").select("*, students(id)").order("created_at", { ascending: false });
 
   return (
     <div className="space-y-5">
@@ -40,17 +35,11 @@ export default async function AdminParentsPage({ searchParams }: { searchParams:
           <CardTitle>Tìm kiếm</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="grid max-w-lg gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-            <div className="grid flex-1 gap-2">
-              <Label htmlFor="q">Tên, username, số điện thoại</Label>
-              <Input id="q" name="q" defaultValue={q} />
-            </div>
-            <SubmitButton pendingText="Đang tìm...">Tìm</SubmitButton>
-          </form>
+          <ClientSearch targetId="admin-parents-results" label="Tên, username, số điện thoại" placeholder="Nhập để lọc ngay" countLabel="phụ huynh" className="max-w-lg" />
         </CardContent>
       </Card>
       <Card>
-        <CardContent className="p-0">
+        <CardContent id="admin-parents-results" className="p-0">
           <Table>
             <THead>
               <tr>
@@ -63,7 +52,11 @@ export default async function AdminParentsPage({ searchParams }: { searchParams:
             </THead>
             <TBody>
               {(parents || []).map((parent) => (
-                <tr key={parent.id}>
+                <tr
+                  key={parent.id}
+                  data-search-key={parent.id}
+                  data-search-text={`${parent.full_name || ""} ${parent.username} ${parent.phone || ""} ${parent.email || ""}`}
+                >
                   <TD>
                     <p className="font-medium">{parent.full_name || parent.username}</p>
                     <p className="text-xs text-muted-foreground">{parent.username}</p>

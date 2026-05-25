@@ -1,5 +1,6 @@
 import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ClientSearch } from "@/components/ui/client-search";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -15,7 +16,6 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 export default async function AdminFeesPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const yearMonth = typeof params.month === "string" ? params.month : getYearMonth();
-  const q = typeof params.q === "string" ? params.q.trim().toLowerCase() : "";
   const supabase = await createClient();
   const feeSetting = await getFeeSetting(supabase, yearMonth);
   const { data: parents } = await supabase.from("parents").select("*, students(*)").order("full_name");
@@ -35,14 +35,9 @@ export default async function AdminFeesPage({ searchParams }: { searchParams: Se
     )
   ).filter((row) => row.studentFees.length > 0);
 
-  const filtered = rows.filter((row) => {
-    const text = `${row.parent.full_name || ""} ${row.parent.username} ${row.parent.phone || ""} ${row.studentFees.map((item) => item.student.full_name).join(" ")}`.toLowerCase();
-    return !q || text.includes(q);
-  });
-
   const csvRows = [
     ["Phu huynh", "Username", "So dien thoai", "Hoc sinh", "Goi", "Ngay nghi tinh tru", "Tong tien"],
-    ...filtered.map((row) => [
+    ...rows.map((row) => [
       row.parent.full_name || "",
       row.parent.username,
       row.parent.phone || "",
@@ -60,17 +55,18 @@ export default async function AdminFeesPage({ searchParams }: { searchParams: Se
         <CardTitle>Tổng hợp phí tháng</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form className="grid gap-3 md:grid-cols-[180px_1fr_auto] md:items-end">
+        <div className="grid gap-3 md:grid-cols-[180px_1fr_auto] md:items-end">
+          <form className="contents">
           <div className="grid gap-2">
             <Label htmlFor="month">Tháng</Label>
             <Input id="month" name="month" type="month" defaultValue={yearMonth} />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="q">Tìm kiếm</Label>
-            <Input id="q" name="q" defaultValue={q} placeholder="Phụ huynh, học sinh, SĐT" />
-          </div>
-          <SubmitButton pendingText="Đang xem...">Xem</SubmitButton>
-        </form>
+          <SubmitButton pendingText="Đang xem..." className="md:col-start-3">
+            Xem
+          </SubmitButton>
+          </form>
+          <ClientSearch targetId="admin-fees-results" placeholder="Phụ huynh, học sinh, SĐT" countLabel="dòng" className="md:col-start-2 md:row-start-1" />
+        </div>
         {!feeSetting ? <Alert variant="warning">Admin chưa cấu hình phí tháng này.</Alert> : null}
         <a
           href={`data:text/csv;charset=utf-8,${encodeURIComponent(`\uFEFF${csv}`)}`}
@@ -79,6 +75,7 @@ export default async function AdminFeesPage({ searchParams }: { searchParams: Se
         >
           Export CSV
         </a>
+        <div id="admin-fees-results">
         <Table>
           <THead>
             <tr>
@@ -89,8 +86,12 @@ export default async function AdminFeesPage({ searchParams }: { searchParams: Se
             </tr>
           </THead>
           <TBody>
-            {filtered.map((row) => (
-              <tr key={row.parent.id}>
+            {rows.map((row) => (
+              <tr
+                key={row.parent.id}
+                data-search-key={row.parent.id}
+                data-search-text={`${row.parent.full_name || ""} ${row.parent.username} ${row.parent.phone || ""} ${row.studentFees.map((item) => item.student.full_name).join(" ")}`}
+              >
                 <TD>
                   <p className="font-medium">{row.parent.full_name || row.parent.username}</p>
                   <p className="text-xs text-muted-foreground">{row.parent.phone || "Chưa có SĐT"}</p>
@@ -110,6 +111,7 @@ export default async function AdminFeesPage({ searchParams }: { searchParams: Se
             ))}
           </TBody>
         </Table>
+        </div>
       </CardContent>
     </Card>
   );

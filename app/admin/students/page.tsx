@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { ClientSearch } from "@/components/ui/client-search";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -17,7 +17,6 @@ type StudentRow = Student & { parents: Pick<Parent, "full_name" | "username" | "
 
 export default async function AdminStudentsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const q = typeof params.q === "string" ? params.q.trim().toLowerCase() : "";
   const status = typeof params.status === "string" ? params.status : "all";
   const className = typeof params.class === "string" ? params.class : "all";
   const packageType = typeof params.package === "string" ? params.package : "all";
@@ -28,9 +27,7 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
     a.localeCompare(b, "vi"),
   );
   const filtered = studentRows.filter((student) => {
-    const text = `${student.full_name} ${student.class_name || ""} ${student.school_name || ""} ${student.parents?.full_name || ""} ${student.parents?.username || ""} ${student.parents?.phone || ""}`.toLowerCase();
     return (
-      (!q || text.includes(q)) &&
       (status === "all" || student.status === status) &&
       (className === "all" || student.class_name === className) &&
       (packageType === "all" || student.boarding_package_type === packageType)
@@ -54,11 +51,9 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
           <CardTitle>Bộ lọc</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-3 lg:grid-cols-[1fr_160px_160px_180px_auto] lg:items-end">
-            <div className="grid gap-2">
-              <Label htmlFor="q">Tìm kiếm</Label>
-              <Input id="q" name="q" defaultValue={q} placeholder="Tên, lớp, phụ huynh, SĐT" />
-            </div>
+          <div className="grid gap-3 lg:grid-cols-[1fr_160px_160px_180px_auto] lg:items-end">
+            <ClientSearch targetId="admin-students-results" placeholder="Tên, lớp, phụ huynh, SĐT" countLabel="học sinh" />
+            <form className="contents">
             <div className="grid gap-2">
               <Label htmlFor="class">Lớp</Label>
               <Select id="class" name="class" defaultValue={className}>
@@ -87,14 +82,12 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
               </Select>
             </div>
             <SubmitButton pendingText="Đang lọc...">Lọc</SubmitButton>
-          </form>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Hiển thị {filtered.length}/{studentRows.length} học sinh
-          </p>
+            </form>
+          </div>
         </CardContent>
       </Card>
       <Card>
-        <CardContent className="p-0">
+        <CardContent id="admin-students-results" className="p-0">
           <Table>
             <THead>
               <tr>
@@ -108,7 +101,11 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
             </THead>
             <TBody>
               {filtered.map((student) => (
-                <tr key={student.id}>
+                <tr
+                  key={student.id}
+                  data-search-key={student.id}
+                  data-search-text={`${student.full_name} ${student.class_name || ""} ${student.school_name || ""} ${student.parents?.full_name || ""} ${student.parents?.username || ""} ${student.parents?.phone || ""}`}
+                >
                   <TD>{student.full_name}</TD>
                   <TD>
                     <p>{student.parents?.full_name || student.parents?.username}</p>

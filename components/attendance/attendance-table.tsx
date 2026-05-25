@@ -80,6 +80,7 @@ export function AttendanceTable({
   records,
   approvedOffStudentIds,
   redirectTo,
+  searchTargetId,
   title = "Điểm danh",
 }: {
   date: string;
@@ -87,6 +88,7 @@ export function AttendanceTable({
   records: AttendanceRecord[];
   approvedOffStudentIds: Set<string>;
   redirectTo: string;
+  searchTargetId: string;
   title?: string;
 }) {
   const recordMap = new Map(records.map((record) => [record.student_id, record]));
@@ -100,7 +102,7 @@ export function AttendanceTable({
   }
 
   return (
-    <>
+    <div id={searchTargetId}>
       <Card className="md:hidden">
         <form id={mobileFormId} action={saveAttendanceBatchAction}>
           <AttendanceHiddenFields date={date} redirectTo={redirectTo} />
@@ -120,7 +122,12 @@ export function AttendanceTable({
               const hasApprovedOff = approvedOffStudentIds.has(student.id);
 
               return (
-                <div key={getStudentRecordKey(student.id, record)} className="rounded-lg border bg-white p-3">
+                <div
+                  key={getStudentRecordKey(student.id, record)}
+                  className="rounded-lg border bg-white p-3"
+                  data-search-key={student.id}
+                  data-search-text={`${student.full_name} ${student.class_name || ""} ${student.parents?.full_name || ""} ${student.parents?.username || ""} ${student.parents?.phone || ""}`}
+                >
                   <input type="hidden" name="student_id" value={student.id} />
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-3">
@@ -179,7 +186,12 @@ export function AttendanceTable({
                 const hasApprovedOff = approvedOffStudentIds.has(student.id);
 
                 return (
-                  <tr key={getStudentRecordKey(student.id, record)} className="bg-white">
+                  <tr
+                    key={getStudentRecordKey(student.id, record)}
+                    className="bg-white"
+                    data-search-key={student.id}
+                    data-search-text={`${student.full_name} ${student.class_name || ""} ${student.parents?.full_name || ""} ${student.parents?.username || ""} ${student.parents?.phone || ""}`}
+                  >
                     <TD>
                       <div className="space-y-1">
                         <p className="font-medium">{student.full_name}</p>
@@ -214,6 +226,6 @@ export function AttendanceTable({
         </CardContent>
       </form>
     </Card>
-    </>
+    </div>
   );
 }

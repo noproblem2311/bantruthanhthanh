@@ -9,10 +9,9 @@ import type { AttendanceRecord, AttendanceStatus } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-function buildRedirectTo(date: string, q: string, status: string) {
+function buildRedirectTo(date: string, status: string) {
   const params = new URLSearchParams();
   params.set("date", date);
-  if (q) params.set("q", q);
   if (status && status !== "all") params.set("status", status);
   return `/manager/attendance?${params.toString()}`;
 }
@@ -20,7 +19,6 @@ function buildRedirectTo(date: string, q: string, status: string) {
 export default async function ManagerAttendancePage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const date = getDateOrVietnamToday(params.date);
-  const q = typeof params.q === "string" ? params.q.trim().toLowerCase() : "";
   const status = typeof params.status === "string" ? params.status : "all";
   const errorMessage = getMessageParam(params, "error");
   const monthBounds = getMonthBounds(date.slice(0, 7));
@@ -43,11 +41,11 @@ export default async function ManagerAttendancePage({ searchParams }: { searchPa
   const recordMap = new Map(((records || []) as AttendanceRecord[]).map((record) => [record.student_id, record]));
   const approvedOffStudentIds = new Set((offRequests || []).map((request: { student_id: string }) => request.student_id));
   const filtered = activeStudents.filter((student) => {
-    const text = `${student.full_name} ${student.parents?.full_name || ""} ${student.parents?.phone || ""}`.toLowerCase();
     const currentStatus = (recordMap.get(student.id)?.status || "not_marked") as AttendanceStatus;
-    return (!q || text.includes(q)) && (status === "all" || currentStatus === status);
+    return status === "all" || currentStatus === status;
   });
-  const redirectTo = buildRedirectTo(date, q, status);
+  const redirectTo = buildRedirectTo(date, status);
+  const searchTargetId = "manager-attendance-results";
 
   return (
     <div className="space-y-5">
@@ -58,16 +56,17 @@ export default async function ManagerAttendancePage({ searchParams }: { searchPa
         activeStudentCount={activeStudents.length}
         records={(monthRecords || []) as AttendanceCalendarRecord[]}
         approvedOffRequests={(monthOffRequests || []) as AttendanceCalendarOffRequest[]}
-        q={q}
+        q=""
         status={status}
       />
-      <AttendanceFilterCard date={date} q={q} status={status} />
+      <AttendanceFilterCard date={date} status={status} searchTargetId={searchTargetId} />
       <AttendanceTable
         date={date}
         students={filtered}
         records={(records || []) as AttendanceRecord[]}
         approvedOffStudentIds={approvedOffStudentIds}
         redirectTo={redirectTo}
+        searchTargetId={searchTargetId}
       />
     </div>
   );
