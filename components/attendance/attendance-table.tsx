@@ -1,4 +1,5 @@
 import { RotateCcw, Save, UserCheck, UserMinus, UserX } from "lucide-react";
+import { Fragment } from "react";
 import { saveAttendanceBatchAction } from "@/lib/actions/attendance";
 import { formatVietnamDate } from "@/lib/date";
 import { attendanceBadgeVariant, attendanceLabels } from "@/lib/labels";
@@ -81,6 +82,7 @@ export function AttendanceTable({
   approvedOffStudentIds,
   redirectTo,
   searchTargetId,
+  groupMarkedStudents = false,
   title = "Điểm danh",
 }: {
   date: string;
@@ -89,6 +91,7 @@ export function AttendanceTable({
   approvedOffStudentIds: Set<string>;
   redirectTo: string;
   searchTargetId: string;
+  groupMarkedStudents?: boolean;
   title?: string;
 }) {
   const recordMap = new Map(records.map((record) => [record.student_id, record]));
@@ -100,6 +103,17 @@ export function AttendanceTable({
   function getStudentRecordKey(studentId: string, record: AttendanceRecord | undefined) {
     return `${date}-${studentId}-${record?.updated_at || record?.marked_at || "empty"}`;
   }
+
+  function getStatus(studentId: string) {
+    return (recordMap.get(studentId)?.status || "not_marked") as AttendanceStatus;
+  }
+
+  const studentGroups = groupMarkedStudents
+    ? [
+        { label: "Chưa điểm danh", students: students.filter((student) => getStatus(student.id) === "not_marked") },
+        { label: "Đã điểm danh", students: students.filter((student) => getStatus(student.id) !== "not_marked") },
+      ]
+    : [{ label: "", students }];
 
   return (
     <div id={searchTargetId}>
@@ -116,37 +130,42 @@ export function AttendanceTable({
             <AttendanceActions formId={mobileFormId} />
           </CardHeader>
           <CardContent className="space-y-3">
-            {students.map((student) => {
-              const record = recordMap.get(student.id);
-              const status = (record?.status || "not_marked") as AttendanceStatus;
-              const hasApprovedOff = approvedOffStudentIds.has(student.id);
+            {studentGroups.map((group) => (
+              <Fragment key={group.label || "all"}>
+                {groupMarkedStudents ? <div className="rounded-md bg-muted/70 px-3 py-2 text-xs font-semibold uppercase text-muted-foreground">{group.label} ({group.students.length})</div> : null}
+                {group.students.map((student) => {
+                  const record = recordMap.get(student.id);
+                  const status = getStatus(student.id);
+                  const hasApprovedOff = approvedOffStudentIds.has(student.id);
 
-              return (
-                <div
-                  key={getStudentRecordKey(student.id, record)}
-                  className="rounded-lg border bg-white p-3"
-                  data-search-key={student.id}
-                  data-search-text={`${student.full_name} ${student.class_name || ""} ${student.parents?.full_name || ""} ${student.parents?.username || ""} ${student.parents?.phone || ""}`}
-                >
-                  <input type="hidden" name="student_id" value={student.id} />
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-medium">{student.full_name}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {student.class_name || "Chưa có lớp"} · {student.parents?.full_name || student.parents?.username || "Chưa có PH"}
-                        </p>
-                        {student.parents?.phone ? <p className="text-xs text-muted-foreground">{student.parents.phone}</p> : null}
+                  return (
+                    <div
+                      key={getStudentRecordKey(student.id, record)}
+                      className="rounded-lg border bg-white p-3"
+                      data-search-key={student.id}
+                      data-search-text={`${student.full_name} ${student.class_name || ""} ${student.parents?.full_name || ""} ${student.parents?.username || ""} ${student.parents?.phone || ""}`}
+                    >
+                      <input type="hidden" name="student_id" value={student.id} />
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-medium">{student.full_name}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {student.class_name || "Chưa có lớp"} · {student.parents?.full_name || student.parents?.username || "Chưa có PH"}
+                            </p>
+                            {student.parents?.phone ? <p className="text-xs text-muted-foreground">{student.parents.phone}</p> : null}
+                          </div>
+                          <Badge variant={attendanceBadgeVariant(status)}>{attendanceLabels[status]}</Badge>
+                        </div>
+                        {hasApprovedOff ? <Badge variant="info">Đã xin nghỉ</Badge> : null}
+                        <StatusChoices studentId={student.id} status={status} compact />
+                        <Textarea name={`note_${student.id}`} defaultValue={record?.note || ""} className="min-h-16" placeholder="Ghi chú ngắn" />
                       </div>
-                      <Badge variant={attendanceBadgeVariant(status)}>{attendanceLabels[status]}</Badge>
                     </div>
-                    {hasApprovedOff ? <Badge variant="info">Đã xin nghỉ</Badge> : null}
-                    <StatusChoices studentId={student.id} status={status} compact />
-                    <Textarea name={`note_${student.id}`} defaultValue={record?.note || ""} className="min-h-16" placeholder="Ghi chú ngắn" />
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </Fragment>
+            ))}
             {students.length === 0 ? <div className="p-4 text-center text-sm text-muted-foreground">Không có học sinh phù hợp.</div> : null}
             {students.length > 0 ? (
               <div className="border-t pt-4">
@@ -180,41 +199,52 @@ export function AttendanceTable({
               </tr>
             </THead>
             <TBody>
-              {students.map((student) => {
-                const record = recordMap.get(student.id);
-                const status = (record?.status || "not_marked") as AttendanceStatus;
-                const hasApprovedOff = approvedOffStudentIds.has(student.id);
+              {studentGroups.map((group) => (
+                <Fragment key={group.label || "all"}>
+                  {groupMarkedStudents ? (
+                    <tr className="bg-muted/70">
+                      <TD colSpan={4} className="py-2 text-xs font-semibold uppercase text-muted-foreground">
+                        {group.label} ({group.students.length})
+                      </TD>
+                    </tr>
+                  ) : null}
+                  {group.students.map((student) => {
+                    const record = recordMap.get(student.id);
+                    const status = getStatus(student.id);
+                    const hasApprovedOff = approvedOffStudentIds.has(student.id);
 
-                return (
-                  <tr
-                    key={getStudentRecordKey(student.id, record)}
-                    className="bg-white"
-                    data-search-key={student.id}
-                    data-search-text={`${student.full_name} ${student.class_name || ""} ${student.parents?.full_name || ""} ${student.parents?.username || ""} ${student.parents?.phone || ""}`}
-                  >
-                    <TD>
-                      <div className="space-y-1">
-                        <p className="font-medium">{student.full_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {student.class_name || "Chưa có lớp"} · {student.parents?.full_name || student.parents?.username || "Chưa có PH"}
-                          {student.parents?.phone ? ` · ${student.parents.phone}` : ""}
-                        </p>
-                        {hasApprovedOff ? <Badge variant="info">Đã xin nghỉ</Badge> : null}
-                      </div>
-                    </TD>
-                    <TD>
-                      <Badge variant={attendanceBadgeVariant(status)}>{attendanceLabels[status]}</Badge>
-                    </TD>
-                    <TD className="min-w-[440px]">
-                      <input type="hidden" name="student_id" value={student.id} />
-                      <StatusChoices studentId={student.id} status={status} />
-                    </TD>
-                    <TD className="min-w-[220px]">
-                      <Textarea name={`note_${student.id}`} defaultValue={record?.note || ""} className="min-h-16" placeholder="Ghi chú ngắn" />
-                    </TD>
-                  </tr>
-                );
-              })}
+                    return (
+                      <tr
+                        key={getStudentRecordKey(student.id, record)}
+                        className="bg-white"
+                        data-search-key={student.id}
+                        data-search-text={`${student.full_name} ${student.class_name || ""} ${student.parents?.full_name || ""} ${student.parents?.username || ""} ${student.parents?.phone || ""}`}
+                      >
+                        <TD>
+                          <div className="space-y-1">
+                            <p className="font-medium">{student.full_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {student.class_name || "Chưa có lớp"} · {student.parents?.full_name || student.parents?.username || "Chưa có PH"}
+                              {student.parents?.phone ? ` · ${student.parents.phone}` : ""}
+                            </p>
+                            {hasApprovedOff ? <Badge variant="info">Đã xin nghỉ</Badge> : null}
+                          </div>
+                        </TD>
+                        <TD>
+                          <Badge variant={attendanceBadgeVariant(status)}>{attendanceLabels[status]}</Badge>
+                        </TD>
+                        <TD className="min-w-[440px]">
+                          <input type="hidden" name="student_id" value={student.id} />
+                          <StatusChoices studentId={student.id} status={status} />
+                        </TD>
+                        <TD className="min-w-[220px]">
+                          <Textarea name={`note_${student.id}`} defaultValue={record?.note || ""} className="min-h-16" placeholder="Ghi chú ngắn" />
+                        </TD>
+                      </tr>
+                    );
+                  })}
+                </Fragment>
+              ))}
             </TBody>
           </Table>
           {students.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Không có học sinh phù hợp.</div> : null}

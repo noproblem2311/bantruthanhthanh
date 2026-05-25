@@ -1,4 +1,5 @@
 import { CreditCard, ReceiptText, Save, UsersRound } from "lucide-react";
+import { Fragment } from "react";
 import { saveMonthlyTuitionRecordsAction } from "@/lib/actions/admin";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,6 +75,8 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
   const records = (tuitionRecords || []) as MonthlyTuitionRecord[];
   const recordsByStudent = new Map(records.map((record) => [record.student_id, record]));
   const rows = buildActiveRows((students || []) as StudentWithParent[], recordsByStudent);
+  const unpaidRows = rows.filter((row) => !row.isPaid);
+  const paidRows = rows.filter((row) => row.isPaid);
 
   const paidCount = rows.filter((row) => row.isPaid).length;
   const receiptSentCount = rows.filter((row) => row.receiptSent).length;
@@ -125,48 +128,60 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
                 </tr>
               </THead>
               <TBody>
-                {rows.map((row) => (
-                  <tr key={row.key}>
-                    <TD>
-                      {row.studentId ? <input type="hidden" name="student_id" value={row.studentId} /> : null}
-                      <p className="font-medium">{row.fullName}</p>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        <Badge variant="muted">{row.className || "Chưa có lớp"}</Badge>
-                      </div>
-                    </TD>
-                    <TD>
-                      <p className="font-medium">{row.parentName || row.parentUsername || "Chưa cập nhật"}</p>
-                      <p className="text-xs text-muted-foreground">{row.parentPhone || "Chưa có SĐT"}</p>
-                    </TD>
-                    <TD>
-                      <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
-                        <input
-                          type="checkbox"
-                          name={`is_paid_${row.studentId}`}
-                          value="paid"
-                          defaultChecked={row.isPaid}
-                          className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-                        />
-                        Đã nộp
-                      </label>
-                    </TD>
-                    <TD>
-                      <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
-                        <input
-                          type="checkbox"
-                          name={`receipt_sent_${row.studentId}`}
-                          value="sent"
-                          defaultChecked={row.receiptSent}
-                          className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-                        />
-                        Đã gửi
-                      </label>
-                    </TD>
-                    <TD>
-                      <Textarea name={`note_${row.studentId}`} defaultValue={row.note} className="min-h-12 resize-y" placeholder="Ghi chú" />
-                    </TD>
-                    <TD className="text-sm text-muted-foreground">{row.updatedAt ? formatVietnamDateTime(row.updatedAt) : "Chưa lưu"}</TD>
-                  </tr>
+                {[
+                  { label: "Chưa nộp", rows: unpaidRows },
+                  { label: "Đã nộp", rows: paidRows },
+                ].map((group) => (
+                  <Fragment key={group.label}>
+                    <tr key={`${group.label}-header`} className="bg-muted/70">
+                      <TD colSpan={6} className="py-2 text-xs font-semibold uppercase text-muted-foreground">
+                        {group.label} ({group.rows.length})
+                      </TD>
+                    </tr>
+                    {group.rows.map((row) => (
+                      <tr key={row.key}>
+                        <TD>
+                          <input type="hidden" name="student_id" value={row.studentId} />
+                          <p className="font-medium">{row.fullName}</p>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            <Badge variant="muted">{row.className || "Chưa có lớp"}</Badge>
+                          </div>
+                        </TD>
+                        <TD>
+                          <p className="font-medium">{row.parentName || row.parentUsername || "Chưa cập nhật"}</p>
+                          <p className="text-xs text-muted-foreground">{row.parentPhone || "Chưa có SĐT"}</p>
+                        </TD>
+                        <TD>
+                          <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                            <input
+                              type="checkbox"
+                              name={`is_paid_${row.studentId}`}
+                              value="paid"
+                              defaultChecked={row.isPaid}
+                              className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                            />
+                            Đã nộp
+                          </label>
+                        </TD>
+                        <TD>
+                          <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                            <input
+                              type="checkbox"
+                              name={`receipt_sent_${row.studentId}`}
+                              value="sent"
+                              defaultChecked={row.receiptSent}
+                              className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                            />
+                            Đã gửi
+                          </label>
+                        </TD>
+                        <TD>
+                          <Textarea name={`note_${row.studentId}`} defaultValue={row.note} className="min-h-12 resize-y" placeholder="Ghi chú" />
+                        </TD>
+                        <TD className="text-sm text-muted-foreground">{row.updatedAt ? formatVietnamDateTime(row.updatedAt) : "Chưa lưu"}</TD>
+                      </tr>
+                    ))}
+                  </Fragment>
                 ))}
               </TBody>
             </Table>

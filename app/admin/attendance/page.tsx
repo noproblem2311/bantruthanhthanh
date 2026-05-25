@@ -68,6 +68,7 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
         approvedOffStudentIds={approvedOffStudentIds}
         redirectTo={redirectTo}
         searchTargetId={searchTargetId}
+        groupMarkedStudents={status === "all"}
       />
     </div>
   );
