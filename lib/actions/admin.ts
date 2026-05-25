@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { redirectWithMessage } from "@/lib/auth/messages";
-import { getMonthBounds, getPreviousYearMonth, isSunday } from "@/lib/date";
+import { getMonthBounds, getPreviousYearMonth, getYearMonth, isSunday } from "@/lib/date";
 import { requireRole } from "@/lib/permissions";
 import {
   appSettingsSchema,
@@ -14,6 +14,7 @@ import {
   feeSettingSchema,
   managerSchema,
   monthlyHistoryCaptureSchema,
+  monthlyTuitionSaveSchema,
   resetPasswordSchema,
   studentSchema,
   updateManagerStatusSchema,
@@ -538,6 +539,76 @@ export async function captureMonthlyHistoryAction(formData: FormData) {
 
   revalidatePath("/admin/monthly-history");
   redirect(`/admin/monthly-history/${snapshot.id}?success=${encodeURIComponent(`Đã capture ${rows.length} học sinh cho tháng ${billingYearMonth}`)}`);
+}
+
+export async function saveMonthlyTuitionRecordsAction(formData: FormData) {
+  const profile = await requireRole("admin");
+  const rawMonth = formData.get("billing_year_month");
+  const pathMonth = typeof rawMonth === "string" && /^\d{4}-\d{2}$/.test(rawMonth) ? rawMonth : getYearMonth();
+  const path = `/admin/tuition?month=${encodeURIComponent(pathMonth)}`;
+  const parsed = monthlyTuitionSaveSchema.safeParse({
+    billing_year_month: rawMonth,
+  });
+
+  if (!parsed.success) {
+    redirectWithMessage(path, "error", parsed.error.issues[0]?.message || "Dữ liệu học phí chưa hợp lệ");
+  }
+
+  const studentIds = Array.from(
+    new Set(formData.getAll("student_id").filter((value): value is string => typeof value === "string" && value.length > 0)),
+  );
+  if (studentIds.length === 0) {
+    redirectWithMessage(path, "error", "Không có học sinh để lưu học phí");
+  }
+
+  const supabase = await createClient();
+  const { data: students, error: studentsError } = await supabase
+    .from("students")
+    .select("id")
+    .in("id", studentIds);
+
+  if (studentsError) {
+    redirectWithMessage(path, "error", "Không đọc được danh sách học sinh");
+  }
+
+  const existingStudentIds = new Set((students || []).map((student) => (student as Pick<Student, "id">).id));
+  if (studentIds.some((studentId) => !existingStudentIds.has(studentId))) {
+    redirectWithMessage(path, "error", "Có học sinh không còn tồn tại, vui lòng tải lại trang");
+  }
+
+  const rows = studentIds.map((studentId) => {
+    const noteValue = formData.get(`note_${studentId}`);
+    const note = typeof noteValue === "string" && noteValue.trim() ? noteValue.trim() : null;
+
+    return {
+      billing_year_month: parsed.data.billing_year_month,
+      student_id: studentId,
+      is_paid: formData.get(`is_paid_${studentId}`) === "paid",
+      receipt_sent: formData.get(`receipt_sent_${studentId}`) === "sent",
+      note,
+      updated_by: profile.id,
+    };
+  });
+
+  const { error } = await supabase.from("monthly_tuition_records").upsert(rows, { onConflict: "billing_year_month,student_id" });
+  if (error) {
+    redirectWithMessage(path, "error", "Không lưu được học phí tháng");
+  }
+
+  await supabase.from("audit_logs").insert({
+    actor_profile_id: profile.id,
+    action: "save_monthly_tuition_records",
+    entity_type: "monthly_tuition_records",
+    metadata: {
+      billing_year_month: parsed.data.billing_year_month,
+      student_count: rows.length,
+      paid_count: rows.filter((row) => row.is_paid).length,
+      receipt_sent_count: rows.filter((row) => row.receipt_sent).length,
+    },
+  });
+
+  revalidatePath("/admin/tuition");
+  redirectWithMessage(path, "success", `Đã lưu học phí tháng ${parsed.data.billing_year_month} cho ${rows.length} học sinh`);
 }
 
 export async function updateAppSettingsAction(formData: FormData) {

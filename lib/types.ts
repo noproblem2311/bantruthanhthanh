@@ -183,3 +183,15 @@ export type ReceiptItem = {
   created_at: string;
   updated_at: string;
 };
+
+export type MonthlyTuitionRecord = {
+  id: string;
+  billing_year_month: string;
+  student_id: string;
+  is_paid: boolean;
+  receipt_sent: boolean;
+  note: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};

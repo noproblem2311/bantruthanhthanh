@@ -66,6 +66,10 @@ export const monthlyHistoryCaptureSchema = z.object({
   note: z.string().optional(),
 });
 
+export const monthlyTuitionSaveSchema = z.object({
+  billing_year_month: z.string().regex(/^\d{4}-\d{2}$/, "Tháng học phí không hợp lệ"),
+});
+
 export const appSettingsSchema = z.object({
   center_name: z.string().min(2),
   phone: z.string().optional(),
