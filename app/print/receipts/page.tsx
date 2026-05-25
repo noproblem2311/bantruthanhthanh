@@ -1,6 +1,6 @@
 import { ReceiptPrintToolbar } from "@/components/receipts/print-toolbar";
 import { createClient } from "@/lib/supabase/server";
-import { formatVietnamDate } from "@/lib/date";
+import { formatVietnamDate, getYearMonth } from "@/lib/date";
 import { requireRole } from "@/lib/permissions";
 import { formatCurrency } from "@/lib/utils";
 import { boardingPackageLabels } from "@/lib/labels";
@@ -10,7 +10,7 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 type ReceiptLine = {
   label: string;
-  amount: number;
+  amount: number | null;
 };
 
 type Receipt = {
@@ -19,9 +19,9 @@ type Receipt = {
   className: string | null;
   billingLabel: string;
   periodLabel: string | null;
-  studiesSaturday: boolean;
+  studiesSaturday: boolean | null;
   lines: ReceiptLine[];
-  total: number;
+  total: number | null;
   note: string | null;
 };
 
@@ -36,7 +36,11 @@ function formatSignedCurrency(value: number) {
 }
 
 function getReceiptTotal(lines: ReceiptLine[]) {
-  return lines.reduce((sum, line) => sum + line.amount, 0);
+  return lines.reduce((sum, line) => sum + (line.amount || 0), 0);
+}
+
+function formatReceiptAmount(value: number | null) {
+  return value === null ? "........................" : formatSignedCurrency(value);
 }
 
 const zeroFeeLines: ReceiptLine[] = [
@@ -111,6 +115,40 @@ function buildManualReceipts(batch: ReceiptBatch, rows: ReceiptItem[]) {
   });
 }
 
+function getBlankReceiptCount(value: string | string[] | undefined) {
+  const parsed = typeof value === "string" ? Number(value) : 20;
+  if (!Number.isFinite(parsed)) return 20;
+  return Math.min(Math.max(Math.trunc(parsed), 1), 100);
+}
+
+function getBlankBillingMonth(value: string | string[] | undefined) {
+  return typeof value === "string" && /^\d{4}-\d{2}$/.test(value) ? value : getYearMonth();
+}
+
+function buildBlankReceipts(yearMonth: string, count: number) {
+  return Array.from({ length: count }, (_, index): Receipt => {
+    const lines: ReceiptLine[] = [
+      { label: "Tiền gói bán trú", amount: null },
+      { label: "Tiền học thứ 7", amount: null },
+      { label: "Tiền học Tin học", amount: null },
+      { label: "Tiền học Tiếng Anh", amount: null },
+      { label: "Khoản cộng/trừ khác", amount: null },
+    ];
+
+    return {
+      number: index + 1,
+      studentName: "........................................",
+      className: "........",
+      billingLabel: getMonthLabel(yearMonth),
+      periodLabel: "Từ ngày ...... / ...... / ......",
+      studiesSaturday: null,
+      lines,
+      total: null,
+      note: null,
+    };
+  });
+}
+
 function ReceiptCard({ receipt }: { receipt: Receipt }) {
   return (
     <section className="receipt-card">
@@ -131,7 +169,8 @@ function ReceiptCard({ receipt }: { receipt: Receipt }) {
           {receipt.className ? ` (${receipt.className})` : ""}
         </p>
         <p>
-          {receipt.periodLabel || "Thời gian thu theo thông báo"} · Học thứ 7: <strong>{receipt.studiesSaturday ? "Có" : "Không"}</strong>
+          {receipt.periodLabel || "Thời gian thu theo thông báo"} · Học thứ 7:{" "}
+          <strong>{receipt.studiesSaturday === null ? "........" : receipt.studiesSaturday ? "Có" : "Không"}</strong>
         </p>
       </div>
 
@@ -148,19 +187,19 @@ function ReceiptCard({ receipt }: { receipt: Receipt }) {
             <tr key={`${line.label}-${index}`}>
               <td>{index + 1}</td>
               <td>{line.label}</td>
-              <td>{formatSignedCurrency(line.amount)}</td>
+              <td>{formatReceiptAmount(line.amount)}</td>
             </tr>
           ))}
           {receipt.lines.length === 0 ? (
             <tr>
               <td>1</td>
               <td>Số tiền hiện tại nộp</td>
-              <td>{formatCurrency(receipt.total)}</td>
+              <td>{receipt.total === null ? "........................" : formatCurrency(receipt.total)}</td>
             </tr>
           ) : null}
           <tr className="receipt-total-row">
             <td colSpan={2}>Số tiền hiện tại nộp</td>
-            <td>{formatCurrency(receipt.total)}</td>
+            <td>{receipt.total === null ? "........................" : formatCurrency(receipt.total)}</td>
           </tr>
         </tbody>
       </table>
@@ -187,12 +226,17 @@ function ReceiptCard({ receipt }: { receipt: Receipt }) {
 export default async function ReceiptPrintPage({ searchParams }: { searchParams: SearchParams }) {
   await requireRole("admin");
   const params = await searchParams;
-  const source = params.source === "manual" ? "manual" : "history";
+  const source = params.source === "manual" ? "manual" : params.source === "blank" ? "blank" : "history";
   const supabase = await createClient();
   let title = "Phiếu thu";
   let receipts: Receipt[] = [];
 
-  if (source === "history") {
+  if (source === "blank") {
+    const billingYearMonth = getBlankBillingMonth(params.billing_year_month);
+    const count = getBlankReceiptCount(params.count);
+    title = `Phiếu trắng ${billingYearMonth}`;
+    receipts = buildBlankReceipts(billingYearMonth, count);
+  } else if (source === "history") {
     const snapshotId = typeof params.snapshot_id === "string" ? params.snapshot_id : "";
     const [{ data: snapshot }, { data: students }] = await Promise.all([
       supabase.from("monthly_history_snapshots").select("*").eq("id", snapshotId).single(),

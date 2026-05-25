@@ -1,4 +1,4 @@
-import { Eye, History, ReceiptText } from "lucide-react";
+import { Eye, FileText, History, ReceiptText } from "lucide-react";
 import { ManualReceiptTable } from "@/components/receipts/manual-receipt-table";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +28,7 @@ function formatMoney(value: number | null, currency: string | null) {
 
 export default async function AdminReceiptsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const mode = params.mode === "manual" ? "manual" : "history";
+  const mode = params.mode === "manual" ? "manual" : params.mode === "blank" ? "blank" : "history";
   const supabase = await createClient();
   const [{ data: snapshots }, { data: manualBatches }] = await Promise.all([
     supabase.from("monthly_history_snapshots").select("*, profiles(full_name,email)").order("captured_at", { ascending: false }).limit(30),
@@ -42,15 +42,18 @@ export default async function AdminReceiptsPage({ searchParams }: { searchParams
       <PageMessage success={getMessageParam(params, "success")} error={getMessageParam(params, "error")} />
       <div>
         <h2 className="text-2xl font-semibold">Phiếu thu</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Xuất phiếu thu từ history đã capture hoặc nhập tay từng học sinh.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Xuất phiếu thu từ history, nhập tay từng học sinh, hoặc in phiếu trắng để ghi sau.</p>
       </div>
 
-      <Tabs className="max-w-md">
+      <Tabs className="max-w-2xl">
         <TabLink href="/admin/receipts?mode=history" active={mode === "history"}>
           Từ history
         </TabLink>
         <TabLink href="/admin/receipts?mode=manual" active={mode === "manual"}>
           Nhập tay
+        </TabLink>
+        <TabLink href="/admin/receipts?mode=blank" active={mode === "blank"}>
+          Phiếu trắng
         </TabLink>
       </Tabs>
 
@@ -122,7 +125,7 @@ export default async function AdminReceiptsPage({ searchParams }: { searchParams
             </CardContent>
           </Card>
         </div>
-      ) : (
+      ) : mode === "manual" ? (
         <div className="space-y-5">
           <Card>
             <CardHeader>
@@ -178,6 +181,46 @@ export default async function AdminReceiptsPage({ searchParams }: { searchParams
                 </TBody>
               </Table>
               {batchRows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Chưa có batch nhập tay.</div> : null}
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid gap-5 xl:grid-cols-[420px_1fr]">
+          <Card>
+            <CardHeader>
+              <CardTitle>In phiếu trắng</CardTitle>
+              <CardDescription>Tạo file in/PDF gồm các phiếu chưa có thông tin học sinh để ghi tay sau.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form action="/print/receipts" className="grid gap-4" target="_blank">
+                <input type="hidden" name="source" value="blank" />
+                <div className="grid gap-2">
+                  <Label htmlFor="blank-billing-month">Tháng thu tiền</Label>
+                  <Input id="blank-billing-month" name="billing_year_month" type="month" defaultValue={getYearMonth()} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="blank-count">Số phiếu trắng</Label>
+                  <Input id="blank-count" name="count" type="number" min={1} max={100} defaultValue={20} required />
+                </div>
+                <SubmitButton pendingText="Đang mở phiếu trắng...">
+                  <FileText className="h-4 w-4" />
+                  Mở phiếu trắng / lưu PDF
+                </SubmitButton>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Khi nào dùng phiếu trắng</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <p>Dùng cho học sinh mới chưa kịp nhập vào hệ thống hoặc chưa có đủ thông tin thu tiền.</p>
+              <p>Mỗi trang A4 vẫn in 2 phiếu. Sau khi in, bạn có thể ghi tay tên học sinh, lớp, khoản thu và tổng tiền.</p>
+              <ButtonLink href={`/print/receipts?source=blank&billing_year_month=${getYearMonth()}&count=20`} target="_blank" variant="outline">
+                <FileText className="h-4 w-4" />
+                Mở nhanh 20 phiếu
+              </ButtonLink>
             </CardContent>
           </Card>
         </div>
