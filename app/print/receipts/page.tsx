@@ -208,7 +208,7 @@ function ReceiptCard({ receipt }: { receipt: Receipt }) {
         <p>
           <strong>Ghi chú:</strong> - Phụ huynh nộp đủ tiền vào ngày 9 hằng tháng.
         </p>
-        <p>- Hai anh chị em ruột được giảm 100000đ.</p>
+        <p>- Hai anh chị em ruột được giảm 50.000đ.</p>
         <p>- Phụ huynh có thắc mắc gì thì gặp trực tiếp cô Lan hoặc điện thoại số 0392333013 (chủ cơ sở).</p>
       </div>
 
