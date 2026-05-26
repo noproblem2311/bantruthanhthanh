@@ -28,7 +28,7 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
     supabase.from("students").select("*, parents(full_name,username,phone)").eq("status", "active").order("full_name"),
     supabase.from("attendance_records").select("*").eq("attendance_date", date),
     supabase.from("off_requests").select("student_id").eq("off_date", date).in("status", ["auto_approved", "approved"]),
-    supabase.from("attendance_records").select("attendance_date,status").gte("attendance_date", monthBounds.start).lt("attendance_date", monthBounds.end),
+    supabase.from("attendance_records").select("student_id,attendance_date,status").gte("attendance_date", monthBounds.start).lt("attendance_date", monthBounds.end),
     supabase
       .from("off_requests")
       .select("off_date,student_id")
@@ -38,8 +38,15 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
   ]);
 
   const activeStudents = (students || []) as AttendanceStudent[];
-  const recordMap = new Map(((records || []) as AttendanceRecord[]).map((record) => [record.student_id, record]));
-  const approvedOffStudentIds = new Set((offRequests || []).map((request: { student_id: string }) => request.student_id));
+  const activeStudentIds = activeStudents.map((student) => student.id);
+  const activeStudentIdSet = new Set(activeStudentIds);
+  const activeRecords = ((records || []) as AttendanceRecord[]).filter((record) => activeStudentIdSet.has(record.student_id));
+  const recordMap = new Map(activeRecords.map((record) => [record.student_id, record]));
+  const approvedOffStudentIds = new Set(
+    (offRequests || [])
+      .filter((request: { student_id: string }) => activeStudentIdSet.has(request.student_id))
+      .map((request: { student_id: string }) => request.student_id),
+  );
   const filtered = activeStudents.filter((student) => {
     const currentStatus = (recordMap.get(student.id)?.status || "not_marked") as AttendanceStatus;
     return status === "all" || currentStatus === status;
@@ -54,6 +61,7 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
         selectedDate={date}
         basePath="/admin/attendance"
         activeStudentCount={activeStudents.length}
+        activeStudentIds={activeStudentIds}
         records={(monthRecords || []) as AttendanceCalendarRecord[]}
         approvedOffRequests={(monthOffRequests || []) as AttendanceCalendarOffRequest[]}
         q=""
@@ -64,7 +72,7 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
         title="Admin điểm danh"
         date={date}
         students={filtered}
-        records={(records || []) as AttendanceRecord[]}
+        records={activeRecords}
         approvedOffStudentIds={approvedOffStudentIds}
         redirectTo={redirectTo}
         searchTargetId={searchTargetId}

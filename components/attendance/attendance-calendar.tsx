@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import type { AttendanceStatus } from "@/lib/types";
 
 export type AttendanceCalendarRecord = {
+  student_id: string;
   attendance_date: string;
   status: AttendanceStatus;
 };
@@ -16,10 +17,10 @@ export type AttendanceCalendarOffRequest = {
 };
 
 type DayStats = {
-  totalCount: number;
-  markedCount: number;
-  notMarkedCount: number;
-  presentCount: number;
+  touchedStudentIds: Set<string>;
+  markedStudentIds: Set<string>;
+  notMarkedStudentIds: Set<string>;
+  presentStudentIds: Set<string>;
   approvedOffStudentIds: Set<string>;
 };
 
@@ -61,19 +62,19 @@ function buildHref(basePath: string, date: string, q: string, status: string) {
 
 function getInitialStats(): DayStats {
   return {
-    totalCount: 0,
-    markedCount: 0,
-    notMarkedCount: 0,
-    presentCount: 0,
+    touchedStudentIds: new Set(),
+    markedStudentIds: new Set(),
+    notMarkedStudentIds: new Set(),
+    presentStudentIds: new Set(),
     approvedOffStudentIds: new Set(),
   };
 }
 
 function getDayState(stats: DayStats | undefined, activeStudentCount: number) {
   if (!stats) return "none";
-  const coveredCount = stats.markedCount + stats.approvedOffStudentIds.size;
-  if (activeStudentCount > 0 && coveredCount >= activeStudentCount && stats.notMarkedCount === 0) return "complete";
-  if (stats.totalCount > 0 || stats.approvedOffStudentIds.size > 0) return "partial";
+  const coveredStudentIds = new Set([...stats.markedStudentIds, ...stats.approvedOffStudentIds]);
+  if (activeStudentCount > 0 && coveredStudentIds.size >= activeStudentCount && stats.notMarkedStudentIds.size === 0) return "complete";
+  if (stats.touchedStudentIds.size > 0 || stats.approvedOffStudentIds.size > 0) return "partial";
   return "none";
 }
 
@@ -81,6 +82,7 @@ export function AttendanceCalendar({
   selectedDate,
   basePath,
   activeStudentCount,
+  activeStudentIds,
   records,
   approvedOffRequests,
   q = "",
@@ -89,6 +91,7 @@ export function AttendanceCalendar({
   selectedDate: string;
   basePath: string;
   activeStudentCount: number;
+  activeStudentIds: string[];
   records: AttendanceCalendarRecord[];
   approvedOffRequests: AttendanceCalendarOffRequest[];
   q?: string;
@@ -100,23 +103,28 @@ export function AttendanceCalendar({
   const firstDay = getDayOfWeek(firstDate);
   const leadingBlankCount = firstDay === 0 ? 6 : firstDay - 1;
   const today = getVietnamToday();
+  const activeStudentIdSet = new Set(activeStudentIds);
   const statsByDate = new Map<string, DayStats>();
 
   records.forEach((record) => {
+    if (!activeStudentIdSet.has(record.student_id)) return;
+
     const stats = statsByDate.get(record.attendance_date) || getInitialStats();
-    stats.totalCount += 1;
+    stats.touchedStudentIds.add(record.student_id);
     if (record.status === "not_marked") {
-      stats.notMarkedCount += 1;
+      stats.notMarkedStudentIds.add(record.student_id);
     } else {
-      stats.markedCount += 1;
+      stats.markedStudentIds.add(record.student_id);
     }
     if (record.status === "present") {
-      stats.presentCount += 1;
+      stats.presentStudentIds.add(record.student_id);
     }
     statsByDate.set(record.attendance_date, stats);
   });
 
   approvedOffRequests.forEach((request) => {
+    if (!activeStudentIdSet.has(request.student_id)) return;
+
     const stats = statsByDate.get(request.off_date) || getInitialStats();
     stats.approvedOffStudentIds.add(request.student_id);
     statsByDate.set(request.off_date, stats);
@@ -198,7 +206,7 @@ export function AttendanceCalendar({
               <Link
                 key={date}
                 href={buildHref(basePath, date, q, status)}
-                aria-label={`${date}: ${stateLabel} điểm danh, ${stats?.presentCount || 0} học sinh có mặt`}
+                aria-label={`${date}: ${stateLabel} điểm danh, ${stats?.presentStudentIds.size || 0} học sinh có mặt`}
                 className={cn(
                   "min-h-20 rounded-md border bg-white p-2 text-left transition hover:-translate-y-0.5 hover:shadow-sm active:translate-y-0",
                   isSelected && "border-primary ring-2 ring-primary/20",
@@ -222,7 +230,7 @@ export function AttendanceCalendar({
                   <p className="font-medium text-slate-700">{stateLabel}</p>
                   {state !== "none" ? (
                     <p className="text-muted-foreground">
-                      {stats?.presentCount || 0}
+                      {stats?.presentStudentIds.size || 0}
                       <span className="hidden sm:inline"> có mặt</span>
                       <span className="sm:hidden"> HS</span>
                     </p>
