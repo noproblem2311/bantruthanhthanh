@@ -14,6 +14,7 @@ const navItems: NavItem[] = [
   { href: "/admin/fee-settings", label: "Cấu hình phí", icon: "fees" },
   { href: "/admin/fees", label: "Tổng hợp phí", icon: "fees" },
   { href: "/admin/tuition", label: "Nộp học phí", icon: "fees" },
+  { href: "/admin/payroll", label: "Công và Lương", icon: "fees" },
   { href: "/admin/receipts", label: "Phiếu thu", icon: "receipts" },
   { href: "/admin/monthly-history", label: "Lịch sử", icon: "history" },
   { href: "/admin/settings", label: "Cài đặt", icon: "settings" },

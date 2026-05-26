@@ -101,7 +101,7 @@ export default async function ManagerTimekeepingPage({ searchParams }: { searchP
               <CalendarClock className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <CardTitle className="truncate">Chấm công quản lý</CardTitle>
+              <CardTitle className="truncate">Chấm công giáo viên</CardTitle>
               <p className="mt-1 text-sm font-medium capitalize text-muted-foreground">
                 {formatMonthLabel(selectedDate)} · {workedDayCount} ngày · {workedShiftCount} buổi
               </p>
@@ -159,8 +159,8 @@ export default async function ManagerTimekeepingPage({ searchParams }: { searchP
                       {isToday ? <span className="rounded bg-primary/10 px-1 text-[9px] font-semibold text-primary sm:text-[10px]">Nay</span> : null}
                     </div>
                     <div className="grid gap-1.5">
-                      <ShiftCheckbox name={`morning_${date}`} label="Sáng" defaultChecked={Boolean(session?.morning_worked)} />
-                      <ShiftCheckbox name={`afternoon_${date}`} label="Chiều" defaultChecked={Boolean(session?.afternoon_worked)} />
+                      <ShiftCheckbox name={`morning_${date}`} label="Sáng+trưa" defaultChecked={Boolean(session?.morning_worked)} />
+                      <ShiftCheckbox name={`afternoon_${date}`} label="Chiều 14-17h" defaultChecked={Boolean(session?.afternoon_worked)} />
                     </div>
                   </div>
                 );
