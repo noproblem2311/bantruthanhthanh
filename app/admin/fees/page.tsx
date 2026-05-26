@@ -7,15 +7,26 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { calculateMonthlyFee, getFeeSetting } from "@/lib/fees";
-import { getYearMonth } from "@/lib/date";
+import { getMonthBounds, getYearMonth } from "@/lib/date";
+import { isStudentEligibleBeforeDate } from "@/lib/student-attendance";
 import { formatCurrency } from "@/lib/utils";
 import type { Parent, Student } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+function hasMonthlyAttendance(row: Awaited<ReturnType<typeof calculateMonthlyFee>>) {
+  return (
+    row.attendance_dates.length > 0 ||
+    row.excused_absent_dates.length > 0 ||
+    row.unexcused_absent_dates.length > 0 ||
+    row.not_marked_dates.length > 0
+  );
+}
+
 export default async function AdminFeesPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const yearMonth = typeof params.month === "string" ? params.month : getYearMonth();
+  const { end } = getMonthBounds(yearMonth);
   const supabase = await createClient();
   const feeSetting = await getFeeSetting(supabase, yearMonth);
   const { data: parents } = await supabase.from("parents").select("*, students(*)").order("full_name");
@@ -24,7 +35,8 @@ export default async function AdminFeesPage({ searchParams }: { searchParams: Se
     await Promise.all(
       ((parents || []) as Array<Parent & { students: Student[] }>).map(async (parent) => {
         const activeStudents = (parent.students || []).filter((student) => student.status === "active");
-        const studentFees = await Promise.all(activeStudents.map((student) => calculateMonthlyFee(supabase, student, yearMonth)));
+        const calculatedFees = await Promise.all(activeStudents.map((student) => calculateMonthlyFee(supabase, student, yearMonth)));
+        const studentFees = calculatedFees.filter((row) => isStudentEligibleBeforeDate(row.student, end) || hasMonthlyAttendance(row));
         return {
           parent,
           studentFees,

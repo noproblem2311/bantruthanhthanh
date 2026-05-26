@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VIETNAM_TIME_ZONE, getDayOfWeek, getVietnamToday } from "@/lib/date";
+import { getStudentAttendanceStartDate } from "@/lib/student-attendance";
 import { cn } from "@/lib/utils";
 import type { AttendanceStatus } from "@/lib/types";
 
@@ -14,6 +15,11 @@ export type AttendanceCalendarRecord = {
 export type AttendanceCalendarOffRequest = {
   off_date: string;
   student_id: string;
+};
+
+export type AttendanceCalendarStudent = {
+  id: string;
+  created_at: string;
 };
 
 type DayStats = {
@@ -70,10 +76,10 @@ function getInitialStats(): DayStats {
   };
 }
 
-function getDayState(stats: DayStats | undefined, activeStudentCount: number) {
+function getDayState(stats: DayStats | undefined, eligibleStudentCount: number) {
   if (!stats) return "none";
   const coveredStudentIds = new Set([...stats.markedStudentIds, ...stats.approvedOffStudentIds]);
-  if (activeStudentCount > 0 && coveredStudentIds.size >= activeStudentCount && stats.notMarkedStudentIds.size === 0) return "complete";
+  if (eligibleStudentCount > 0 && coveredStudentIds.size >= eligibleStudentCount && stats.notMarkedStudentIds.size === 0) return "complete";
   if (stats.touchedStudentIds.size > 0 || stats.approvedOffStudentIds.size > 0) return "partial";
   return "none";
 }
@@ -81,8 +87,7 @@ function getDayState(stats: DayStats | undefined, activeStudentCount: number) {
 export function AttendanceCalendar({
   selectedDate,
   basePath,
-  activeStudentCount,
-  activeStudentIds,
+  activeStudents,
   records,
   approvedOffRequests,
   q = "",
@@ -90,8 +95,7 @@ export function AttendanceCalendar({
 }: {
   selectedDate: string;
   basePath: string;
-  activeStudentCount: number;
-  activeStudentIds: string[];
+  activeStudents: AttendanceCalendarStudent[];
   records: AttendanceCalendarRecord[];
   approvedOffRequests: AttendanceCalendarOffRequest[];
   q?: string;
@@ -103,8 +107,19 @@ export function AttendanceCalendar({
   const firstDay = getDayOfWeek(firstDate);
   const leadingBlankCount = firstDay === 0 ? 6 : firstDay - 1;
   const today = getVietnamToday();
-  const activeStudentIdSet = new Set(activeStudentIds);
+  const activeStudentStartDates = new Map(activeStudents.map((student) => [student.id, getStudentAttendanceStartDate(student)]));
+  const activeStudentIdSet = new Set(activeStudents.map((student) => student.id));
   const statsByDate = new Map<string, DayStats>();
+
+  function getEligibleStudentCount(date: string, stats: DayStats | undefined) {
+    const eligibleStudentIds = new Set<string>();
+    activeStudentStartDates.forEach((startDate, studentId) => {
+      if (startDate <= date) eligibleStudentIds.add(studentId);
+    });
+    stats?.touchedStudentIds.forEach((studentId) => eligibleStudentIds.add(studentId));
+    stats?.approvedOffStudentIds.forEach((studentId) => eligibleStudentIds.add(studentId));
+    return eligibleStudentIds.size;
+  }
 
   records.forEach((record) => {
     if (!activeStudentIdSet.has(record.student_id)) return;
@@ -197,7 +212,7 @@ export function AttendanceCalendar({
             const day = index + 1;
             const date = formatDate(year, month, day);
             const stats = statsByDate.get(date);
-            const state = getDayState(stats, activeStudentCount);
+            const state = getDayState(stats, getEligibleStudentCount(date, stats));
             const isSelected = date === selectedDate;
             const isToday = date === today;
             const stateLabel = state === "complete" ? "Đã" : state === "partial" ? "Đang" : "Chưa";

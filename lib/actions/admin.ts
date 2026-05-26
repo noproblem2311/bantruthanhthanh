@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirectWithMessage } from "@/lib/auth/messages";
 import { getMonthBounds, getPreviousYearMonth, getYearMonth, isSunday } from "@/lib/date";
 import { requireRole } from "@/lib/permissions";
+import { isStudentEligibleBeforeDate, isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
 import {
   appSettingsSchema,
   createParentSchema,
@@ -426,23 +427,31 @@ export async function captureMonthlyHistoryAction(formData: FormData) {
     supabase.from("fee_settings").select("*").eq("year_month", billingYearMonth).maybeSingle(),
   ]);
 
-  const studentRows = (students || []) as CaptureStudent[];
-  if (studentRows.length === 0) {
+  const allStudentRows = (students || []) as CaptureStudent[];
+  if (allStudentRows.length === 0) {
     redirectWithMessage("/admin/monthly-history", "error", "Chưa có học sinh active để capture");
   }
 
-  const studentIds = studentRows.map((student) => student.id);
+  const allStudentIds = allStudentRows.map((student) => student.id);
   const { data: attendance } = await supabase
     .from("attendance_records")
     .select("*")
     .gte("attendance_date", start)
     .lt("attendance_date", end)
-    .in("student_id", studentIds)
-    .in("status", ["excused_absent", "unexcused_absent"])
+    .in("student_id", allStudentIds)
     .order("attendance_date", { ascending: true });
+  const attendanceStudentIds = new Set(((attendance || []) as AttendanceRecord[]).map((record) => record.student_id));
+  const studentRows = allStudentRows.filter((student) => isStudentEligibleBeforeDate(student, end) || attendanceStudentIds.has(student.id));
+  if (studentRows.length === 0) {
+    redirectWithMessage("/admin/monthly-history", "error", "Chưa có học sinh hợp lệ để capture tháng này");
+  }
 
   const absencesByStudent = new Map<string, AbsenceBucket>();
-  for (const record of ((attendance || []) as AttendanceRecord[]).filter((item) => !isSunday(item.attendance_date))) {
+  const studentsById = new Map(studentRows.map((student) => [student.id, student]));
+  for (const record of ((attendance || []) as AttendanceRecord[]).filter((item) => {
+    const student = studentsById.get(item.student_id);
+    return Boolean(student && !isSunday(item.attendance_date) && ["excused_absent", "unexcused_absent"].includes(item.status));
+  })) {
     const bucket = absencesByStudent.get(record.student_id) || emptyAbsenceBucket();
     if (record.status === "excused_absent") bucket.excusedDates.push(record.attendance_date);
     if (record.status === "unexcused_absent") bucket.unexcusedDates.push(record.attendance_date);
@@ -568,6 +577,23 @@ export async function saveMonthlyTuitionRecordsAction(formData: FormData) {
     redirectWithMessage(path, "error", "Không có học sinh để lưu học phí");
   }
 
+  const { start, end } = getMonthBounds(parsed.data.billing_year_month);
+  const supabase = await createClient();
+  const [{ data: students }, { data: attendanceRecords }] = await Promise.all([
+    supabase.from("students").select("id,created_at,status").eq("status", "active").in("id", studentIds),
+    supabase.from("attendance_records").select("student_id").gte("attendance_date", start).lt("attendance_date", end).in("student_id", studentIds),
+  ]);
+  const attendanceStudentIds = new Set((attendanceRecords || []).map((record: { student_id: string }) => record.student_id));
+  const eligibleStudentIds = new Set(
+    ((students || []) as Array<Pick<Student, "id" | "created_at">>)
+      .filter((student) => isStudentEligibleBeforeDate(student, end) || attendanceStudentIds.has(student.id))
+      .map((student) => student.id),
+  );
+
+  if (studentIds.some((studentId) => !eligibleStudentIds.has(studentId))) {
+    redirectWithMessage(path, "error", "Danh sách có học sinh chưa hợp lệ cho tháng học phí");
+  }
+
   const rows = studentIds.map((studentId) => {
     const noteValue = formData.get(`note_${studentId}`);
     const note = typeof noteValue === "string" && noteValue.trim() ? noteValue.trim() : null;
@@ -582,7 +608,6 @@ export async function saveMonthlyTuitionRecordsAction(formData: FormData) {
     };
   });
 
-  const supabase = await createClient();
   const { error } = await supabase.from("monthly_tuition_records").upsert(rows, { onConflict: "billing_year_month,student_id" });
   if (error) {
     redirectWithMessage(path, "error", "Không lưu được học phí tháng");
@@ -650,7 +675,17 @@ export async function updateOffRequestStatusAction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { data: request } = await supabase.from("off_requests").select("student_id,off_date").eq("id", id).single();
+  const { data: request } = await supabase.from("off_requests").select("student_id,off_date,students(created_at)").eq("id", id).single();
+  const requestStudent = Array.isArray(request?.students) ? request?.students[0] : request?.students;
+  if (request && (status === "approved" || status === "auto_approved")) {
+    if (!requestStudent) {
+      redirectWithMessage(path, "error", "Không tìm thấy học sinh của đơn nghỉ");
+    }
+    if (!isStudentEligibleForAttendanceDate(requestStudent, request.off_date)) {
+      redirectWithMessage(path, "error", "Không thể duyệt đơn nghỉ trước ngày tạo học sinh");
+    }
+  }
+
   const { error } = await supabase
     .from("off_requests")
     .update({

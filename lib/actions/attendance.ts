@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { formatVietnamDate } from "@/lib/date";
 import { requireRole } from "@/lib/permissions";
+import { isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
 import { attendanceStatusSchema, bulkAttendanceSchema, markAttendanceSchema } from "@/lib/validators/attendance";
 import { redirectWithMessage } from "@/lib/auth/messages";
+import type { Student } from "@/lib/types";
 
 function attendancePath(formData: FormData) {
   const value = formData.get("redirect_to");
@@ -27,6 +29,23 @@ export async function markAttendanceAction(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const { data: student } = await supabase
+    .from("students")
+    .select("id,created_at,status")
+    .eq("id", parsed.data.student_id)
+    .eq("status", "active")
+    .single();
+  const { data: existingRecord } = await supabase
+    .from("attendance_records")
+    .select("id")
+    .eq("student_id", parsed.data.student_id)
+    .eq("attendance_date", parsed.data.attendance_date)
+    .maybeSingle();
+
+  if (!student || (!existingRecord && !isStudentEligibleForAttendanceDate(student as Pick<Student, "created_at">, parsed.data.attendance_date))) {
+    redirectWithMessage(path, "error", "Không thể điểm danh trước ngày tạo học sinh");
+  }
+
   const { error } = await supabase.from("attendance_records").upsert(
     {
       student_id: parsed.data.student_id,
@@ -61,10 +80,31 @@ export async function saveAttendanceBatchAction(formData: FormData) {
 
   const studentIds = Array.from(new Set(formData.getAll("student_id").filter((value): value is string => typeof value === "string")));
   const rows = [];
+  const supabase = await createClient();
+  const { data: students } = studentIds.length
+    ? await supabase.from("students").select("id,created_at,status").eq("status", "active").in("id", studentIds)
+    : { data: [] };
+  const { data: existingRecords } = studentIds.length
+    ? await supabase
+        .from("attendance_records")
+        .select("student_id")
+        .eq("attendance_date", attendanceDate)
+        .in("student_id", studentIds)
+    : { data: [] };
+  const existingRecordStudentIds = new Set((existingRecords || []).map((record: { student_id: string }) => record.student_id));
+  const eligibleStudents = new Map(
+    ((students || []) as Array<Pick<Student, "id" | "created_at">>)
+      .filter((student) => existingRecordStudentIds.has(student.id) || isStudentEligibleForAttendanceDate(student, attendanceDate))
+      .map((student) => [student.id, student]),
+  );
 
   for (const studentId of studentIds) {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(studentId)) {
       redirectWithMessage(path, "error", "Danh sách học sinh không hợp lệ");
+    }
+
+    if (!eligibleStudents.has(studentId)) {
+      redirectWithMessage(path, "error", "Danh sách có học sinh chưa hợp lệ cho ngày điểm danh");
     }
 
     const status = formData.get(`status_${studentId}`);
@@ -89,7 +129,6 @@ export async function saveAttendanceBatchAction(formData: FormData) {
     redirectWithMessage(path, "error", "Không có học sinh nào để lưu điểm danh");
   }
 
-  const supabase = await createClient();
   const { error } = await supabase.from("attendance_records").upsert(rows, { onConflict: "student_id,attendance_date" });
 
   if (error) redirectWithMessage(path, "error", "Không lưu được điểm danh");
@@ -110,8 +149,10 @@ export async function bulkMarkPresentAction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { data: students } = await supabase.from("students").select("id").eq("status", "active");
-  const studentIds = (students || []).map((student: { id: string }) => student.id);
+  const { data: students } = await supabase.from("students").select("id,created_at").eq("status", "active");
+  const studentIds = ((students || []) as Array<Pick<Student, "id" | "created_at">>)
+    .filter((student) => isStudentEligibleForAttendanceDate(student, parsed.data.attendance_date))
+    .map((student) => student.id);
 
   if (studentIds.length === 0) {
     redirectWithMessage(path, "error", "Chưa có học sinh active");

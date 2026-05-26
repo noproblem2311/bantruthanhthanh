@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { canSubmitOffRequest, isWeekend } from "@/lib/date";
 import { requireRole } from "@/lib/permissions";
+import { isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
 import { cancelOffRequestSchema, offRequestSchema, parentProfileSchema } from "@/lib/validators/parent";
 import { redirectWithMessage } from "@/lib/auth/messages";
 
@@ -59,11 +60,15 @@ export async function createOffRequestAction(formData: FormData) {
 
   const { data: student } = await supabase
     .from("students")
-    .select("id")
+    .select("id,created_at")
     .eq("id", parsed.data.student_id)
     .eq("parent_id", parent.id)
+    .eq("status", "active")
     .single();
   if (!student) redirectWithMessage("/parent/off-requests", "error", "Bạn không có quyền xin nghỉ cho học sinh này");
+  if (!isStudentEligibleForAttendanceDate(student, parsed.data.off_date)) {
+    redirectWithMessage("/parent/off-requests", "error", "Không thể xin nghỉ trước ngày tạo học sinh");
+  }
 
   const { error } = await supabase.from("off_requests").insert({
     student_id: parsed.data.student_id,

@@ -11,7 +11,8 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/server";
-import { formatVietnamDateTime, getYearMonth } from "@/lib/date";
+import { formatVietnamDateTime, getMonthBounds, getYearMonth } from "@/lib/date";
+import { isStudentEligibleBeforeDate } from "@/lib/student-attendance";
 import { getMessageParam } from "@/lib/utils";
 import type { MonthlyTuitionRecord, Parent, Student } from "@/lib/types";
 
@@ -61,20 +62,26 @@ function buildActiveRows(students: StudentWithParent[], recordsByStudent: Map<st
 export async function MonthlyTuitionPage({ searchParams, basePath }: { searchParams: SearchParams; basePath: TuitionBasePath }) {
   const params = await searchParams;
   const billingYearMonth = getMonthParam(params.month);
+  const { start, end } = getMonthBounds(billingYearMonth);
   const supabase = await createClient();
 
-  const [{ data: students }, { data: tuitionRecords }] = await Promise.all([
+  const [{ data: students }, { data: tuitionRecords }, { data: attendanceRecords }] = await Promise.all([
     supabase
       .from("students")
       .select("*, parents(id,full_name,username,phone)")
       .eq("status", "active")
       .order("full_name"),
     supabase.from("monthly_tuition_records").select("*").eq("billing_year_month", billingYearMonth).order("updated_at", { ascending: false }),
+    supabase.from("attendance_records").select("student_id").gte("attendance_date", start).lt("attendance_date", end),
   ]);
 
   const records = (tuitionRecords || []) as MonthlyTuitionRecord[];
   const recordsByStudent = new Map(records.map((record) => [record.student_id, record]));
-  const rows = buildActiveRows((students || []) as StudentWithParent[], recordsByStudent);
+  const attendanceStudentIds = new Set((attendanceRecords || []).map((record: { student_id: string }) => record.student_id));
+  const rows = buildActiveRows(
+    ((students || []) as StudentWithParent[]).filter((student) => isStudentEligibleBeforeDate(student, end) || attendanceStudentIds.has(student.id)),
+    recordsByStudent,
+  );
   const unpaidRows = rows.filter((row) => !row.isPaid);
   const paidRows = rows.filter((row) => row.isPaid);
 

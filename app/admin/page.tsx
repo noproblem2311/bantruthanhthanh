@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMonthBounds, getVietnamToday, getYearMonth } from "@/lib/date";
 import { buildStudentMonthlyFee } from "@/lib/fees";
 import { attendanceBadgeVariant, attendanceLabels, offRequestBadgeVariant, offRequestLabels } from "@/lib/labels";
+import { isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
 import { formatCurrency } from "@/lib/utils";
 import type { AttendanceRecord, FeeSetting, Student } from "@/lib/types";
 
@@ -44,16 +45,26 @@ export default async function AdminDashboardPage() {
     supabase.from("students").select("*, parents(full_name,username)").order("created_at", { ascending: false }).limit(5),
   ]);
 
-  const presentToday = (todayAttendance || []).filter((record) => record.status === "present").length;
-  const excusedToday = (todayAttendance || []).filter((record) => record.status === "excused_absent").length;
-  const markedStudentIds = new Set((todayAttendance || []).filter((record) => record.status !== "not_marked").map((record) => record.student_id));
-  const notMarkedToday = Math.max((activeStudents || 0) - markedStudentIds.size, 0);
-  const presentMonth = (monthlyAttendance || []).filter((record) => record.status === "present").length;
+  const activeStudentList = (activeStudentRows || []) as Student[];
+  const activeStudentsById = new Map(activeStudentList.map((student) => [student.id, student]));
+  const eligibleTodayAttendance = (todayAttendance || []).filter((record) => {
+    const student = activeStudentsById.get(record.student_id);
+    return Boolean(student && isStudentEligibleForAttendanceDate(student, record.attendance_date));
+  });
+  const eligibleMonthlyAttendance = ((monthlyAttendance || []) as AttendanceRecord[]).filter((record) => {
+    const student = activeStudentsById.get(record.student_id);
+    return Boolean(student);
+  });
+  const presentToday = eligibleTodayAttendance.filter((record) => record.status === "present").length;
+  const excusedToday = eligibleTodayAttendance.filter((record) => record.status === "excused_absent").length;
+  const markedStudentIds = new Set(eligibleTodayAttendance.filter((record) => record.status !== "not_marked").map((record) => record.student_id));
+  const notMarkedToday = Math.max(activeStudentList.filter((student) => isStudentEligibleForAttendanceDate(student, today)).length - markedStudentIds.size, 0);
+  const presentMonth = eligibleMonthlyAttendance.filter((record) => record.status === "present").length;
   const feeRows = feeSetting
-    ? ((activeStudentRows || []) as Student[]).map((student) =>
+    ? activeStudentList.map((student) =>
         buildStudentMonthlyFee(
           student,
-          ((monthlyAttendance || []) as AttendanceRecord[]).filter((record) => record.student_id === student.id),
+          eligibleMonthlyAttendance.filter((record) => record.student_id === student.id),
           feeSetting as FeeSetting,
         ),
       )
@@ -151,7 +162,7 @@ export default async function AdminDashboardPage() {
                 </tr>
               </THead>
               <TBody>
-                {(todayAttendance || []).slice(0, 8).map((record) => (
+                {eligibleTodayAttendance.slice(0, 8).map((record) => (
                   <tr key={record.id}>
                     <TD>{record.students?.full_name}</TD>
                     <TD>

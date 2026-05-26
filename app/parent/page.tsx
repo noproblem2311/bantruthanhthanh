@@ -37,12 +37,17 @@ export default async function ParentDashboardPage() {
     supabase.from("fee_settings").select("*").eq("year_month", yearMonth).maybeSingle(),
   ]);
 
-  const presentDays = (monthlyAttendance || []).filter((record) => record.status === "present").length;
+  const childrenById = new Map(((children || []) as Student[]).map((child) => [child.id, child]));
+  const eligibleMonthlyAttendance = ((monthlyAttendance || []) as AttendanceRecord[]).filter((record) => {
+    const child = childrenById.get(record.student_id);
+    return Boolean(child);
+  });
+  const presentDays = eligibleMonthlyAttendance.filter((record) => record.status === "present").length;
   const feeRows = feeSetting
     ? ((children || []) as Student[]).map((child) =>
         buildStudentMonthlyFee(
           child,
-          ((monthlyAttendance || []) as AttendanceRecord[]).filter((record) => record.student_id === child.id),
+          eligibleMonthlyAttendance.filter((record) => record.student_id === child.id),
           feeSetting as FeeSetting,
         ),
       )

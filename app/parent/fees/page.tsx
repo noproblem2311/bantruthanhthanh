@@ -6,19 +6,31 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { calculateMonthlyFee, getFeeSetting } from "@/lib/fees";
-import { getYearMonth } from "@/lib/date";
+import { getMonthBounds, getYearMonth } from "@/lib/date";
+import { isStudentEligibleBeforeDate } from "@/lib/student-attendance";
 import { formatCurrency } from "@/lib/utils";
 import type { Student } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+function hasMonthlyAttendance(row: Awaited<ReturnType<typeof calculateMonthlyFee>>) {
+  return (
+    row.attendance_dates.length > 0 ||
+    row.excused_absent_dates.length > 0 ||
+    row.unexcused_absent_dates.length > 0 ||
+    row.not_marked_dates.length > 0
+  );
+}
+
 export default async function ParentFeesPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const yearMonth = typeof params.month === "string" ? params.month : getYearMonth();
+  const { end } = getMonthBounds(yearMonth);
   const supabase = await createClient();
   const { data: children } = await supabase.from("students").select("*").eq("status", "active").order("full_name");
   const feeSetting = await getFeeSetting(supabase, yearMonth);
-  const feeRows = await Promise.all(((children || []) as Student[]).map((child) => calculateMonthlyFee(supabase, child, yearMonth)));
+  const calculatedFees = await Promise.all(((children || []) as Student[]).map((child) => calculateMonthlyFee(supabase, child, yearMonth)));
+  const feeRows = calculatedFees.filter((row) => isStudentEligibleBeforeDate(row.student, end) || hasMonthlyAttendance(row));
   const total = feeRows.reduce((sum, row) => sum + (row.total_amount || 0), 0);
 
   return (

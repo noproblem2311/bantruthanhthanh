@@ -4,6 +4,7 @@ import { AttendanceTable, type AttendanceStudent } from "@/components/attendance
 import { PageMessage } from "@/components/ui/message";
 import { createClient } from "@/lib/supabase/server";
 import { getDateOrVietnamToday, getMonthBounds } from "@/lib/date";
+import { isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
 import { getMessageParam } from "@/lib/utils";
 import type { AttendanceRecord, AttendanceStatus } from "@/lib/types";
 
@@ -38,16 +39,22 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
   ]);
 
   const activeStudents = (students || []) as AttendanceStudent[];
-  const activeStudentIds = activeStudents.map((student) => student.id);
-  const activeStudentIdSet = new Set(activeStudentIds);
-  const activeRecords = ((records || []) as AttendanceRecord[]).filter((record) => activeStudentIdSet.has(record.student_id));
+  const currentRecords = (records || []) as AttendanceRecord[];
+  const recordStudentIds = new Set(currentRecords.map((record) => record.student_id));
+  const offRequestStudentIds = new Set((offRequests || []).map((request: { student_id: string }) => request.student_id));
+  const eligibleStudents = activeStudents.filter(
+    (student) => isStudentEligibleForAttendanceDate(student, date) || recordStudentIds.has(student.id) || offRequestStudentIds.has(student.id),
+  );
+  const eligibleStudentIds = eligibleStudents.map((student) => student.id);
+  const eligibleStudentIdSet = new Set(eligibleStudentIds);
+  const activeRecords = currentRecords.filter((record) => eligibleStudentIdSet.has(record.student_id));
   const recordMap = new Map(activeRecords.map((record) => [record.student_id, record]));
   const approvedOffStudentIds = new Set(
     (offRequests || [])
-      .filter((request: { student_id: string }) => activeStudentIdSet.has(request.student_id))
+      .filter((request: { student_id: string }) => eligibleStudentIdSet.has(request.student_id))
       .map((request: { student_id: string }) => request.student_id),
   );
-  const filtered = activeStudents.filter((student) => {
+  const filtered = eligibleStudents.filter((student) => {
     const currentStatus = (recordMap.get(student.id)?.status || "not_marked") as AttendanceStatus;
     return status === "all" || currentStatus === status;
   });
@@ -60,8 +67,7 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
       <AttendanceCalendar
         selectedDate={date}
         basePath="/admin/attendance"
-        activeStudentCount={activeStudents.length}
-        activeStudentIds={activeStudentIds}
+        activeStudents={activeStudents}
         records={(monthRecords || []) as AttendanceCalendarRecord[]}
         approvedOffRequests={(monthOffRequests || []) as AttendanceCalendarOffRequest[]}
         q=""
