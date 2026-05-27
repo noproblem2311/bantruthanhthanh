@@ -12,7 +12,7 @@ $$;
 
 create table if not exists public.app_settings (
   id uuid primary key default gen_random_uuid(),
-  center_name text not null default 'Bán trú Learning Hub',
+  center_name text not null default 'Phát Triển Toàn Diện',
   address text,
   phone text,
   zalo_url text,
@@ -309,5 +309,5 @@ create policy "Admins read audit logs" on public.audit_logs for select using (pu
 create policy "Admins insert audit logs" on public.audit_logs for insert with check (public.is_admin());
 
 insert into public.app_settings (center_name, description)
-select 'Bán trú Learning Hub', 'Bán trú học tập cho học sinh tiểu học'
+select 'Phát Triển Toàn Diện', 'Bán trú học tập cho học sinh tiểu học'
 where not exists (select 1 from public.app_settings);

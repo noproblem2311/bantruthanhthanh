@@ -9,11 +9,14 @@ import { createClient } from "@/lib/supabase/server";
 import { getMessageParam } from "@/lib/utils";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+const oldCenterName = "Bán trú Learning Hub";
+const defaultCenterName = "Phát Triển Toàn Diện";
 
 export default async function AdminSettingsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const supabase = await createClient();
   const { data: settings } = await supabase.from("app_settings").select("*").limit(1).maybeSingle();
+  const centerName = settings?.center_name && settings.center_name !== oldCenterName ? settings.center_name : defaultCenterName;
 
   return (
     <Card className="max-w-3xl">
@@ -28,7 +31,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
         <form action={updateAppSettingsAction} className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="center_name">Tên bán trú</Label>
-            <Input id="center_name" name="center_name" defaultValue={settings?.center_name || "Bán trú Learning Hub"} required />
+            <Input id="center_name" name="center_name" defaultValue={centerName} required />
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="grid gap-2">

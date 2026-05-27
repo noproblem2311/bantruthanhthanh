@@ -1,4 +1,4 @@
-# Bán trú Learning Hub
+# Phát Triển Toàn Diện
 
 Web app quản lý bán trú học sinh tiểu học bằng Next.js App Router, TypeScript, Supabase Auth/PostgreSQL/RLS và Tailwind UI.
 

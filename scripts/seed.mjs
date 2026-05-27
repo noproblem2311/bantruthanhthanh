@@ -115,13 +115,13 @@ async function main() {
     await supabase
       .from("app_settings")
       .update({
-        center_name: "Bán trú Learning Hub",
+        center_name: "Phát Triển Toàn Diện",
         description: "Bán trú học tập cho học sinh tiểu học",
       })
       .eq("id", currentSettings.id);
   } else {
     await supabase.from("app_settings").insert({
-      center_name: "Bán trú Learning Hub",
+      center_name: "Phát Triển Toàn Diện",
       description: "Bán trú học tập cho học sinh tiểu học",
     });
   }

@@ -42,7 +42,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
       <div className="container-page flex min-h-screen flex-col justify-center py-10">
         <div className="mb-8 flex items-center justify-between gap-3">
           <Link href="/" className="min-w-0 truncate text-lg font-semibold text-primary">
-            Bán trú Learning Hub
+            Phát Triển Toàn Diện
           </Link>
           <ButtonLink href="/" variant="outline" size="sm" className="shrink-0 sm:min-h-10 sm:px-4">
             Trang chủ

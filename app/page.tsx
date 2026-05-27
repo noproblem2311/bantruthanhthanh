@@ -5,6 +5,8 @@ import { ButtonLink } from "@/components/ui/button";
 
 const englishUrl = "https://ms-duyen-english.vercel.app/";
 const googleMapsUrl = "https://maps.app.goo.gl/akrkDTRDutL5MCe87";
+const oldCenterName = "Bán trú Learning Hub";
+const defaultCenterName = "Phát Triển Toàn Diện";
 
 const programs = [
   {
@@ -49,7 +51,7 @@ const strengths = [
 export default async function HomePage() {
   const supabase = await createClient();
   const { data: settings } = await supabase.from("app_settings").select("*").limit(1).maybeSingle();
-  const centerName = settings?.center_name || "Bán trú Learning Hub";
+  const centerName = settings?.center_name && settings.center_name !== oldCenterName ? settings.center_name : defaultCenterName;
 
   return (
     <main className="min-h-screen bg-white">

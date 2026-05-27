@@ -20,7 +20,7 @@ export function DashboardShell({
       <header className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur">
         <div className="container-page flex min-h-16 items-center justify-between gap-3 py-2">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary">Bán trú Learning Hub</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary">Phát Triển Toàn Diện</p>
             <h1 className="truncate text-base font-semibold sm:text-xl">{title}</h1>
           </div>
           <form action={logoutAction}>

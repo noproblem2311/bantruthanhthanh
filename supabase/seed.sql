@@ -1,5 +1,5 @@
 insert into public.app_settings (center_name, description)
-select 'Bán trú Learning Hub', 'Bán trú học tập cho học sinh tiểu học'
+select 'Phát Triển Toàn Diện', 'Bán trú học tập cho học sinh tiểu học'
 where not exists (select 1 from public.app_settings);
 
 insert into public.fee_settings (
