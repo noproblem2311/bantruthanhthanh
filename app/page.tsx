@@ -1,9 +1,10 @@
-import { ArrowRight, BookOpenCheck, ChefHat, Code2, GraduationCap, Headphones, Laptop, Phone, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
+import { ArrowRight, BookOpenCheck, ChefHat, Code2, GraduationCap, Headphones, Laptop, MapPin, Phone, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { ButtonLink } from "@/components/ui/button";
 
 const englishUrl = "https://ms-duyen-english.vercel.app/";
+const googleMapsUrl = "https://maps.app.goo.gl/akrkDTRDutL5MCe87";
 
 const programs = [
   {
@@ -196,7 +197,10 @@ export default async function HomePage() {
               <Phone className="h-4 w-4" />
               {settings?.phone || "0392333013"}
             </p>
-            <p>{settings?.address || "Điện Bàn Đông"}</p>
+            <a href={googleMapsUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 underline-offset-4 hover:underline">
+              <MapPin className="h-4 w-4" />
+              {settings?.address || "Điện Bàn Đông"}
+            </a>
           </div>
         </div>
       </section>

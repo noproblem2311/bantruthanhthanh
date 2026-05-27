@@ -1,4 +1,4 @@
-import { ArrowLeft, BadgeCheck, BrainCircuit, Code2, Laptop, MonitorPlay, MousePointer2, Phone, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, BadgeCheck, BrainCircuit, Code2, Laptop, MapPin, MonitorPlay, MousePointer2, Phone, ShieldCheck, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { ButtonLink } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -33,6 +33,8 @@ const learningPath = [
   ["Sáng tạo", "Biến kiến thức thành tranh vẽ, bài trình bày hoặc trò chơi nhỏ."],
   ["Chia sẻ", "Con trình bày sản phẩm, luyện sự tự tin và khả năng diễn đạt."],
 ] as const;
+
+const googleMapsUrl = "https://maps.app.goo.gl/akrkDTRDutL5MCe87";
 
 export default async function ComputerLandingPage() {
   const supabase = await createClient();
@@ -180,7 +182,10 @@ export default async function ComputerLandingPage() {
               <Phone className="h-4 w-4" />
               {phone}
             </p>
-            <p>{settings?.address || "Điện Bàn Đông"}</p>
+            <a href={googleMapsUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 underline-offset-4 hover:underline">
+              <MapPin className="h-4 w-4" />
+              {settings?.address || "Điện Bàn Đông"}
+            </a>
           </div>
         </div>
       </section>

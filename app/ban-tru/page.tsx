@@ -1,4 +1,4 @@
-import { ArrowLeft, Brain, CalendarDays, ChefHat, HeartHandshake, Moon, Phone, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Brain, CalendarDays, ChefHat, HeartHandshake, MapPin, Moon, Phone, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import { ButtonLink } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -35,6 +35,8 @@ const packages = [
     price: "850.000đ",
   },
 ] as const;
+
+const googleMapsUrl = "https://maps.app.goo.gl/akrkDTRDutL5MCe87";
 
 export default async function BoardingLandingPage() {
   const supabase = await createClient();
@@ -173,7 +175,10 @@ export default async function BoardingLandingPage() {
               <Phone className="h-4 w-4" />
               {phone}
             </p>
-            <p>{settings?.address || "Điện Bàn Đông"}</p>
+            <a href={googleMapsUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 underline-offset-4 hover:underline">
+              <MapPin className="h-4 w-4" />
+              {settings?.address || "Điện Bàn Đông"}
+            </a>
           </div>
         </div>
       </section>
