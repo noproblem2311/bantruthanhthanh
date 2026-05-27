@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { Banknote, CalendarDays, Clock3, UsersRound } from "lucide-react";
+import { Banknote, CalendarDays, Clock3, Save, UsersRound } from "lucide-react";
+import { saveAdminManagerTimekeepingAction } from "@/lib/actions/timekeeping";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageMessage } from "@/components/ui/message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { TabLink, Tabs } from "@/components/ui/tabs";
@@ -11,7 +13,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { createClient } from "@/lib/supabase/server";
 import { formatVietnamDate, getDayOfWeek, getMonthBounds, getYearMonth } from "@/lib/date";
 import { calculateTeacherPayroll, CLASS_STUDENT_CAP, getPayrollFormulaType } from "@/lib/teacher-payroll";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, getMessageParam } from "@/lib/utils";
 import type { ManagerWorkSession, Profile } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -77,6 +79,23 @@ function buildPayrollHref(tab: PayrollTab, month: string, managerId?: string) {
   const params = new URLSearchParams({ month, tab });
   if (managerId) params.set("manager", managerId);
   return `/admin/payroll?${params.toString()}`;
+}
+
+function ShiftCheckbox({
+  name,
+  label,
+  defaultChecked,
+}: {
+  name: string;
+  label: string;
+  defaultChecked: boolean;
+}) {
+  return (
+    <label className="flex min-h-8 cursor-pointer items-center justify-between gap-1 rounded-md border bg-white px-1.5 text-[10px] font-medium transition hover:bg-muted/70 sm:px-2 sm:text-xs">
+      <span className="truncate">{label}</span>
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 shrink-0 accent-primary" />
+    </label>
+  );
 }
 
 function buildPresentCounts(records: PresentAttendanceRecord[]) {
@@ -172,7 +191,7 @@ function buildWorkSummaries(managers: Profile[], sessions: ManagerWorkSession[])
   });
 }
 
-function ReadonlyWorkCalendar({
+function EditableWorkCalendar({
   yearMonth,
   selectedManager,
   sessions,
@@ -187,6 +206,7 @@ function ReadonlyWorkCalendar({
   const leadingBlankCount = firstDay === 0 ? 6 : firstDay - 1;
   const daysInMonth = getDaysInMonth(year, month);
   const sessionMap = new Map(sessions.map((session) => [session.work_date, session]));
+  const redirectTo = selectedManager ? buildPayrollHref("work", yearMonth, selectedManager.id) : buildPayrollHref("work", yearMonth);
 
   return (
     <Card>
@@ -194,43 +214,60 @@ function ReadonlyWorkCalendar({
         <CardTitle>Lịch công {selectedManager?.full_name || "giáo viên"}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-7 gap-1.5">
-          {weekdayLabels.map((label) => (
-            <div key={label} className="py-1 text-center text-xs font-semibold text-muted-foreground">
-              {label}
-            </div>
-          ))}
-          {Array.from({ length: leadingBlankCount }).map((_, index) => (
-            <div key={`blank-${index}`} className="min-h-24 rounded-md border border-transparent" />
-          ))}
-          {Array.from({ length: daysInMonth }).map((_, index) => {
-            const day = index + 1;
-            const date = formatDate(year, month, day);
-            const session = sessionMap.get(date);
-            const hasShift = Boolean(session?.morning_worked || session?.afternoon_worked);
+        {selectedManager ? (
+          <form action={saveAdminManagerTimekeepingAction} className="space-y-4">
+            <input type="hidden" name="profile_id" value={selectedManager.id} />
+            <input type="hidden" name="year_month" value={yearMonth} />
+            <input type="hidden" name="redirect_to" value={redirectTo} />
 
-            return (
-              <div
-                key={date}
-                className={cn(
-                  "min-h-24 rounded-md border bg-white p-2",
-                  hasShift ? "border-emerald-200 bg-emerald-50/70" : "border-slate-200",
-                )}
-              >
-                <div className="mb-2 flex items-center justify-between gap-1">
-                  <span className="text-sm font-semibold">{day}</span>
-                  <span className={cn("h-2.5 w-2.5 rounded-full", hasShift ? "bg-emerald-500" : "bg-slate-300")} />
+            <div className="grid grid-cols-7 gap-1.5">
+              {weekdayLabels.map((label) => (
+                <div key={label} className="py-1 text-center text-xs font-semibold text-muted-foreground">
+                  {label}
                 </div>
-                <div className="grid gap-1">
-                  {session?.morning_worked ? <Badge variant="info">Sáng+trưa</Badge> : null}
-                  {session?.afternoon_worked ? <Badge variant="warning">Chiều 14-17h</Badge> : null}
-                  {!hasShift ? <span className="text-xs text-muted-foreground">Không chấm</span> : null}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <p className="text-xs text-muted-foreground">Lịch này chỉ để xem, không có thao tác chỉnh sửa tại trang admin.</p>
+              ))}
+              {Array.from({ length: leadingBlankCount }).map((_, index) => (
+                <div key={`blank-${index}`} className="min-h-28 rounded-md border border-transparent" />
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, index) => {
+                const day = index + 1;
+                const date = formatDate(year, month, day);
+                const session = sessionMap.get(date);
+                const hasShift = Boolean(session?.morning_worked || session?.afternoon_worked);
+
+                return (
+                  <div
+                    key={date}
+                    className={cn(
+                      "min-h-28 rounded-md border bg-white p-1.5 sm:p-2",
+                      hasShift ? "border-emerald-200 bg-emerald-50/70" : "border-slate-200",
+                    )}
+                  >
+                    <input type="hidden" name="work_date" value={date} />
+                    <div className="mb-2 flex items-center justify-between gap-1">
+                      <span className="text-sm font-semibold">{day}</span>
+                      <span className={cn("h-2.5 w-2.5 rounded-full", hasShift ? "bg-emerald-500" : "bg-slate-300")} />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <ShiftCheckbox name={`morning_${date}`} label="Sáng+trưa" defaultChecked={Boolean(session?.morning_worked)} />
+                      <ShiftCheckbox name={`afternoon_${date}`} label="Chiều 14-17h" defaultChecked={Boolean(session?.afternoon_worked)} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-md border bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">Admin có thể tick/bỏ tick buổi công của quản lý đang chọn.</p>
+              <SubmitButton pendingText="Đang lưu..." className="sm:w-auto">
+                <Save className="h-4 w-4" />
+                Lưu chấm công
+              </SubmitButton>
+            </div>
+          </form>
+        ) : (
+          <p className="text-sm text-muted-foreground">Chưa có tài khoản quản lý để chấm công.</p>
+        )}
       </CardContent>
     </Card>
   );
@@ -283,6 +320,8 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
 
   return (
     <div className="space-y-5">
+      <PageMessage success={getMessageParam(params, "success")} error={getMessageParam(params, "error")} />
+
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h2 className="text-2xl font-semibold">Công và Lương</h2>
@@ -465,7 +504,7 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
             </CardContent>
           </Card>
 
-          <ReadonlyWorkCalendar yearMonth={yearMonth} selectedManager={selectedManager} sessions={selectedSessions} />
+          <EditableWorkCalendar yearMonth={yearMonth} selectedManager={selectedManager} sessions={selectedSessions} />
         </div>
       )}
     </div>
