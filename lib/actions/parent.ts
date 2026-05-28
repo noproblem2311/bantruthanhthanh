@@ -60,14 +60,14 @@ export async function createOffRequestAction(formData: FormData) {
 
   const { data: student } = await supabase
     .from("students")
-    .select("id,created_at")
+    .select("id,created_at,enrollment_date")
     .eq("id", parsed.data.student_id)
     .eq("parent_id", parent.id)
     .eq("status", "active")
     .single();
   if (!student) redirectWithMessage("/parent/off-requests", "error", "Bạn không có quyền xin nghỉ cho học sinh này");
   if (!isStudentEligibleForAttendanceDate(student, parsed.data.off_date)) {
-    redirectWithMessage("/parent/off-requests", "error", "Không thể xin nghỉ trước ngày tạo học sinh");
+    redirectWithMessage("/parent/off-requests", "error", "Không thể xin nghỉ trước ngày vào của học sinh");
   }
 
   const { error } = await supabase.from("off_requests").insert({

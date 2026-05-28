@@ -683,14 +683,14 @@ export async function updateOffRequestStatusAction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { data: request } = await supabase.from("off_requests").select("student_id,off_date,students(created_at)").eq("id", id).single();
+  const { data: request } = await supabase.from("off_requests").select("student_id,off_date,students(created_at,enrollment_date)").eq("id", id).single();
   const requestStudent = Array.isArray(request?.students) ? request?.students[0] : request?.students;
   if (request && (status === "approved" || status === "auto_approved")) {
     if (!requestStudent) {
       redirectWithMessage(path, "error", "Không tìm thấy học sinh của đơn nghỉ");
     }
     if (!isStudentEligibleForAttendanceDate(requestStudent, request.off_date)) {
-      redirectWithMessage(path, "error", "Không thể duyệt đơn nghỉ trước ngày tạo học sinh");
+      redirectWithMessage(path, "error", "Không thể duyệt đơn nghỉ trước ngày vào của học sinh");
     }
   }
 

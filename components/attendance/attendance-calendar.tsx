@@ -20,6 +20,7 @@ export type AttendanceCalendarOffRequest = {
 export type AttendanceCalendarStudent = {
   id: string;
   created_at: string;
+  enrollment_date?: string | null;
 };
 
 type DayStats = {
@@ -123,6 +124,8 @@ export function AttendanceCalendar({
 
   records.forEach((record) => {
     if (!activeStudentIdSet.has(record.student_id)) return;
+    const startDate = activeStudentStartDates.get(record.student_id);
+    if (!startDate || startDate > record.attendance_date) return;
 
     const stats = statsByDate.get(record.attendance_date) || getInitialStats();
     stats.touchedStudentIds.add(record.student_id);
@@ -139,6 +142,8 @@ export function AttendanceCalendar({
 
   approvedOffRequests.forEach((request) => {
     if (!activeStudentIdSet.has(request.student_id)) return;
+    const startDate = activeStudentStartDates.get(request.student_id);
+    if (!startDate || startDate > request.off_date) return;
 
     const stats = statsByDate.get(request.off_date) || getInitialStats();
     stats.approvedOffStudentIds.add(request.student_id);
