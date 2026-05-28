@@ -48,7 +48,7 @@ export default async function AdminFeesPage({ searchParams }: { searchParams: Se
   ).filter((row) => row.studentFees.length > 0);
 
   const csvRows = [
-    ["Phu huynh", "Username", "So dien thoai", "Hoc sinh", "Goi", "Ngay nghi tinh tru", "Tong tien"],
+    ["Phu huynh", "Username", "So dien thoai", "Hoc sinh", "Goi", "Buoi vang co phep tinh tru", "Tong tien"],
     ...rows.map((row) => [
       row.parent.full_name || "",
       row.parent.username,
@@ -112,7 +112,7 @@ export default async function AdminFeesPage({ searchParams }: { searchParams: Se
                   <div className="space-y-1">
                     {row.studentFees.map((item) => (
                       <p key={item.student.id} className="text-sm">
-                        {item.student.full_name}: {item.package_name}, nghỉ {item.absent_days} ngày
+                        {item.student.full_name}: {item.package_name}, vắng có phép {item.absent_days} buổi
                       </p>
                     ))}
                   </div>

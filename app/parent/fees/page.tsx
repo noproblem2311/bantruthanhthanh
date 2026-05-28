@@ -53,7 +53,7 @@ export default async function ParentFeesPage({ searchParams }: { searchParams: S
               <TH>Học sinh</TH>
               <TH>Gói</TH>
               <TH>Giá gói</TH>
-              <TH>Nghỉ tính trừ</TH>
+              <TH>Vắng có phép tính trừ</TH>
               <TH>Tiền trừ</TH>
               <TH>Tổng tiền</TH>
               <TH>Ngày có mặt thứ 7</TH>
@@ -66,7 +66,7 @@ export default async function ParentFeesPage({ searchParams }: { searchParams: S
                 <TD>{row.package_name}</TD>
                 <TD>{row.package_amount === null ? "Chưa có" : formatCurrency(row.package_amount)}</TD>
                 <TD>
-                  <p>{row.absent_days} ngày</p>
+                  <p>{row.absent_days} buổi</p>
                   <p className="text-xs text-muted-foreground">{row.charged_absent_dates.join(", ") || "Không có"}</p>
                 </TD>
                 <TD>{row.absence_deduction_total === null ? "Chưa có" : formatCurrency(row.absence_deduction_total)}</TD>

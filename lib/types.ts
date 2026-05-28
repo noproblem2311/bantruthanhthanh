@@ -46,6 +46,7 @@ export type Student = {
   allergy_notes: string | null;
   pickup_notes: string | null;
   boarding_package_type: BoardingPackageType;
+  enrollment_date: string | null;
   status: RecordStatus;
   created_at: string;
   updated_at: string;
@@ -128,6 +129,7 @@ export type MonthlyHistoryStudent = {
   allergy_notes: string | null;
   pickup_notes: string | null;
   boarding_package_type: BoardingPackageType;
+  enrollment_date: string | null;
   student_status: RecordStatus;
   parent_full_name: string | null;
   parent_username: string | null;

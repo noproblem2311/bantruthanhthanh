@@ -6,14 +6,14 @@ alter table public.fee_settings
 update public.fee_settings
 set saturday_package_amount = coalesce(saturday_package_amount, 850000),
     weekday_package_amount = coalesce(weekday_package_amount, 720000),
-    absence_deduction_amount = coalesce(absence_deduction_amount, 33000),
-    fee_per_attendance_day = coalesce(fee_per_attendance_day, 33000);
+    absence_deduction_amount = coalesce(absence_deduction_amount, 18000),
+    fee_per_attendance_day = coalesce(fee_per_attendance_day, 18000);
 
 alter table public.fee_settings
   alter column saturday_package_amount set default 850000,
   alter column weekday_package_amount set default 720000,
-  alter column absence_deduction_amount set default 33000,
-  alter column fee_per_attendance_day set default 33000,
+  alter column absence_deduction_amount set default 18000,
+  alter column fee_per_attendance_day set default 18000,
   alter column saturday_package_amount set not null,
   alter column weekday_package_amount set not null,
   alter column absence_deduction_amount set not null;

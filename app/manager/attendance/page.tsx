@@ -40,11 +40,7 @@ export default async function ManagerAttendancePage({ searchParams }: { searchPa
 
   const activeStudents = (students || []) as AttendanceStudent[];
   const currentRecords = (records || []) as AttendanceRecord[];
-  const recordStudentIds = new Set(currentRecords.map((record) => record.student_id));
-  const offRequestStudentIds = new Set((offRequests || []).map((request: { student_id: string }) => request.student_id));
-  const eligibleStudents = activeStudents.filter(
-    (student) => isStudentEligibleForAttendanceDate(student, date) || recordStudentIds.has(student.id) || offRequestStudentIds.has(student.id),
-  );
+  const eligibleStudents = activeStudents.filter((student) => isStudentEligibleForAttendanceDate(student, date));
   const eligibleStudentIds = eligibleStudents.map((student) => student.id);
   const eligibleStudentIdSet = new Set(eligibleStudentIds);
   const activeRecords = currentRecords.filter((record) => eligibleStudentIdSet.has(record.student_id));

@@ -13,10 +13,10 @@ insert into public.fee_settings (
 )
 values (
   to_char((now() at time zone 'Asia/Ho_Chi_Minh'), 'YYYY-MM' , 'weekday'),
-  33000,
+  18000,
   850000,
   720000,
-  33000,
+  18000,
   'VND',
   'Seed SQL tháng hiện tại'
 )
@@ -113,3 +113,7 @@ where not exists (
     and existing.full_name = student_rows.full_name
     and existing.class_name is not distinct from student_rows.class_name
 );
+
+update public.students
+set enrollment_date = (created_at at time zone 'Asia/Ho_Chi_Minh')::date
+where enrollment_date is null;

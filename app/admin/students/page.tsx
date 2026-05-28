@@ -10,6 +10,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { boardingPackageLabels, statusLabels } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
+import { formatVietnamDate, getVietnamDateFromTimestamp } from "@/lib/date";
 import type { BoardingPackageType, Parent, RecordStatus, Student } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -95,6 +96,7 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
                 <TH>Phụ huynh</TH>
                 <TH>Trường/Lớp</TH>
                 <TH>Gói bán trú</TH>
+                <TH>Ngày vào</TH>
                 <TH>Trạng thái</TH>
                 <TH></TH>
               </tr>
@@ -116,6 +118,7 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
                     <p className="text-xs text-muted-foreground">{student.class_name || "Chưa có lớp"}</p>
                   </TD>
                   <TD>{boardingPackageLabels[(student.boarding_package_type || "weekday") as BoardingPackageType]}</TD>
+                  <TD>{formatVietnamDate(student.enrollment_date || getVietnamDateFromTimestamp(student.created_at))}</TD>
                   <TD>
                     <Badge variant={student.status === "active" ? "success" : "muted"}>{statusLabels[student.status as RecordStatus]}</Badge>
                   </TD>

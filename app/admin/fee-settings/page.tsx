@@ -25,7 +25,7 @@ export default async function FeeSettingsPage({ searchParams }: { searchParams: 
       <Card>
         <CardHeader>
           <CardTitle>Cấu hình phí tháng</CardTitle>
-          <CardDescription>Phí = giá gói tháng - số ngày nghỉ không tính Chủ nhật * tiền trừ/ngày.</CardDescription>
+          <CardDescription>Phí tháng này = giá gói - số buổi vắng có phép tháng trước * tiền trừ/buổi.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
@@ -59,7 +59,7 @@ export default async function FeeSettingsPage({ searchParams }: { searchParams: 
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="absence_deduction_amount">Tiền trừ/ngày nghỉ</Label>
+              <Label htmlFor="absence_deduction_amount">Tiền trừ/buổi vắng có phép</Label>
               <Input
                 id="absence_deduction_amount"
                 name="absence_deduction_amount"
@@ -93,7 +93,7 @@ export default async function FeeSettingsPage({ searchParams }: { searchParams: 
                 <TH>Tháng</TH>
                 <TH>Gói có thứ 7</TH>
                 <TH>Gói không thứ 7</TH>
-                <TH>Trừ/ngày nghỉ</TH>
+                <TH>Trừ/buổi vắng</TH>
                 <TH>Ghi chú</TH>
               </tr>
             </THead>

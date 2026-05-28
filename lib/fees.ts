@@ -1,14 +1,15 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getMonthBounds, isSaturday, isSunday } from "@/lib/date";
+import { getMonthBounds, getPreviousYearMonth, isSaturday, isSunday } from "@/lib/date";
 import { boardingPackageLabels } from "@/lib/labels";
+import { getStudentAttendanceStartDate } from "@/lib/student-attendance";
 import type { AttendanceRecord, BoardingPackageType, FeeSetting, Student } from "@/lib/types";
 
 type SupabaseLike = SupabaseClient;
 
 export const DEFAULT_SATURDAY_PACKAGE_AMOUNT = 850000;
 export const DEFAULT_WEEKDAY_PACKAGE_AMOUNT = 720000;
-export const DEFAULT_ABSENCE_DEDUCTION_AMOUNT = 33000;
+export const DEFAULT_ABSENCE_DEDUCTION_AMOUNT = 18000;
 
 export type StudentMonthlyFee = {
   student: Student;
@@ -35,7 +36,8 @@ export async function getFeeSetting(supabase: SupabaseLike, yearMonth: string) {
 }
 
 export async function calculateMonthlyFee(supabase: SupabaseLike, student: Student, yearMonth: string) {
-  const { start, end } = getMonthBounds(yearMonth);
+  const previousYearMonth = getPreviousYearMonth(yearMonth);
+  const { start, end } = getMonthBounds(previousYearMonth);
   const feeSetting = await getFeeSetting(supabase, yearMonth);
   const { data } = await supabase
     .from("attendance_records")
@@ -49,12 +51,14 @@ export async function calculateMonthlyFee(supabase: SupabaseLike, student: Stude
 }
 
 export function buildStudentMonthlyFee(student: Student, records: AttendanceRecord[], feeSetting: FeeSetting | null): StudentMonthlyFee {
-  const attendanceDates = records.filter((record) => record.status === "present").map((record) => record.attendance_date);
-  const excusedAbsentDates = records.filter((record) => record.status === "excused_absent").map((record) => record.attendance_date);
-  const unexcusedAbsentDates = records.filter((record) => record.status === "unexcused_absent").map((record) => record.attendance_date);
-  const notMarkedDates = records.filter((record) => record.status === "not_marked").map((record) => record.attendance_date);
+  const attendanceStartDate = getStudentAttendanceStartDate(student);
+  const billableRecords = records.filter((record) => record.attendance_date >= attendanceStartDate);
+  const attendanceDates = billableRecords.filter((record) => record.status === "present").map((record) => record.attendance_date);
+  const excusedAbsentDates = billableRecords.filter((record) => record.status === "excused_absent").map((record) => record.attendance_date);
+  const unexcusedAbsentDates = billableRecords.filter((record) => record.status === "unexcused_absent").map((record) => record.attendance_date);
+  const notMarkedDates = billableRecords.filter((record) => record.status === "not_marked").map((record) => record.attendance_date);
   const saturdayAttendanceDates = attendanceDates.filter(isSaturday);
-  const chargedAbsentDates = [...excusedAbsentDates, ...unexcusedAbsentDates].filter((date) => !isSunday(date)).sort();
+  const chargedAbsentDates = excusedAbsentDates.filter((date) => !isSunday(date)).sort();
   const packageType = student.boarding_package_type ?? "weekday";
   const packageAmount =
     feeSetting === null

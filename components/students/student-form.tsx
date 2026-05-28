@@ -8,12 +8,14 @@ import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Textarea } from "@/components/ui/textarea";
 import { boardingPackageLabels } from "@/lib/labels";
+import { getVietnamDateFromTimestamp } from "@/lib/date";
 import type { Parent, Student } from "@/lib/types";
 import { StudentRequiredFieldsAlert } from "./student-required-fields-alert";
 
 export function StudentForm({ student, parents }: { student?: Student; parents: Parent[] }) {
   const action = student ? updateStudentAction : createStudentAction;
   const formId = student ? `student-form-${student.id}` : "student-form-new";
+  const enrollmentDate = student?.enrollment_date || (student?.created_at ? getVietnamDateFromTimestamp(student.created_at) : "");
 
   return (
     <Card>
@@ -43,7 +45,7 @@ export function StudentForm({ student, parents }: { student?: Student; parents: 
               <Input id="full_name" name="full_name" defaultValue={student?.full_name || ""} required />
             </div>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
             <div className="grid gap-2">
               <Label htmlFor="nickname">Tên gọi</Label>
               <Input id="nickname" name="nickname" defaultValue={student?.nickname || ""} />
@@ -69,6 +71,10 @@ export function StudentForm({ student, parents }: { student?: Student; parents: 
                 <option value="weekday">{boardingPackageLabels.weekday}</option>
                 <option value="saturday">{boardingPackageLabels.saturday}</option>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="enrollment_date">Ngày vào</Label>
+              <Input id="enrollment_date" name="enrollment_date" type="date" defaultValue={enrollmentDate} />
             </div>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">

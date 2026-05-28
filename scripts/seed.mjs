@@ -33,6 +33,17 @@ function getYearMonthVN() {
   return `${map.year}-${map.month}`;
 }
 
+function getTodayVN() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
 const requestedStudents = [
   { fullName: "Tú Quỳnh", className: "1/1", status: "active", parentUsername: "ph-tu-quynh-1-1", boardingPackageType: "weekday" },
   { fullName: "Thuỷ Ngân", className: "1/1", status: "active", parentUsername: "ph-thuy-ngan-1-1", boardingPackageType: "weekday" },
@@ -109,6 +120,7 @@ async function main() {
   const supabase = createClient(url, serverKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+  const todayVN = getTodayVN();
 
   const { data: currentSettings } = await supabase.from("app_settings").select("id").limit(1).maybeSingle();
   if (currentSettings) {
@@ -232,6 +244,7 @@ async function main() {
         full_name: fullName,
         school_name: "Tiểu học Demo",
         class_name: fullName.endsWith("Minh") ? "3A" : "1B",
+        enrollment_date: todayVN,
         status: "active",
       });
     }
@@ -254,10 +267,10 @@ async function main() {
   await supabase.from("fee_settings").upsert(
     {
       year_month: getYearMonthVN(),
-      fee_per_attendance_day: 33000,
+      fee_per_attendance_day: 18000,
       saturday_package_amount: 850000,
       weekday_package_amount: 720000,
-      absence_deduction_amount: 33000,
+      absence_deduction_amount: 18000,
       currency: "VND",
       note: "Seed tháng hiện tại",
       created_by: adminProfile.id,
@@ -307,6 +320,7 @@ async function main() {
           status: student.status,
           boarding_package_type: student.boardingPackageType,
           class_name: student.className,
+          enrollment_date: todayVN,
         })
         .eq("id", existingStudent.id);
     } else {
@@ -314,6 +328,7 @@ async function main() {
         parent_id: requestedParent.id,
         full_name: student.fullName,
         class_name: student.className,
+        enrollment_date: todayVN,
         status: student.status,
         boarding_package_type: student.boardingPackageType,
       });

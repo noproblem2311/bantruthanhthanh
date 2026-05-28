@@ -31,19 +31,12 @@ export async function markAttendanceAction(formData: FormData) {
   const supabase = await createClient();
   const { data: student } = await supabase
     .from("students")
-    .select("id,created_at,status")
+    .select("id,created_at,enrollment_date,status")
     .eq("id", parsed.data.student_id)
     .eq("status", "active")
     .single();
-  const { data: existingRecord } = await supabase
-    .from("attendance_records")
-    .select("id")
-    .eq("student_id", parsed.data.student_id)
-    .eq("attendance_date", parsed.data.attendance_date)
-    .maybeSingle();
-
-  if (!student || (!existingRecord && !isStudentEligibleForAttendanceDate(student as Pick<Student, "created_at">, parsed.data.attendance_date))) {
-    redirectWithMessage(path, "error", "Không thể điểm danh trước ngày tạo học sinh");
+  if (!student || !isStudentEligibleForAttendanceDate(student as Pick<Student, "created_at" | "enrollment_date">, parsed.data.attendance_date)) {
+    redirectWithMessage(path, "error", "Không thể điểm danh trước ngày vào của học sinh");
   }
 
   const { error } = await supabase.from("attendance_records").upsert(
@@ -82,19 +75,15 @@ export async function saveAttendanceBatchAction(formData: FormData) {
   const rows = [];
   const supabase = await createClient();
   const { data: students } = studentIds.length
-    ? await supabase.from("students").select("id,created_at,status").eq("status", "active").in("id", studentIds)
-    : { data: [] };
-  const { data: existingRecords } = studentIds.length
     ? await supabase
-        .from("attendance_records")
-        .select("student_id")
-        .eq("attendance_date", attendanceDate)
-        .in("student_id", studentIds)
+        .from("students")
+        .select("id,created_at,enrollment_date,status")
+        .eq("status", "active")
+        .in("id", studentIds)
     : { data: [] };
-  const existingRecordStudentIds = new Set((existingRecords || []).map((record: { student_id: string }) => record.student_id));
   const eligibleStudents = new Map(
-    ((students || []) as Array<Pick<Student, "id" | "created_at">>)
-      .filter((student) => existingRecordStudentIds.has(student.id) || isStudentEligibleForAttendanceDate(student, attendanceDate))
+    ((students || []) as Array<Pick<Student, "id" | "created_at" | "enrollment_date">>)
+      .filter((student) => isStudentEligibleForAttendanceDate(student, attendanceDate))
       .map((student) => [student.id, student]),
   );
 
@@ -149,8 +138,8 @@ export async function bulkMarkPresentAction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { data: students } = await supabase.from("students").select("id,created_at").eq("status", "active");
-  const studentIds = ((students || []) as Array<Pick<Student, "id" | "created_at">>)
+  const { data: students } = await supabase.from("students").select("id,created_at,enrollment_date").eq("status", "active");
+  const studentIds = ((students || []) as Array<Pick<Student, "id" | "created_at" | "enrollment_date">>)
     .filter((student) => isStudentEligibleForAttendanceDate(student, parsed.data.attendance_date))
     .map((student) => student.id);
 

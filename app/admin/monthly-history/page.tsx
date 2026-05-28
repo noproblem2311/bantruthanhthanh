@@ -40,14 +40,14 @@ export default async function MonthlyHistoryPage({ searchParams }: { searchParam
         <Card>
           <CardHeader>
             <CardTitle>Capture lịch sử tháng</CardTitle>
-            <CardDescription>Lưu roster học sinh active hiện tại và số buổi nghỉ của tháng trước, không tính Chủ nhật.</CardDescription>
+            <CardDescription>Lưu roster học sinh active hiện tại và số buổi vắng của tháng trước, không tính Chủ nhật.</CardDescription>
           </CardHeader>
           <CardContent>
             <form action={captureMonthlyHistoryAction} className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="billing_year_month">Tháng thu phí</Label>
                 <Input id="billing_year_month" name="billing_year_month" type="month" defaultValue={billingYearMonth} required />
-                <p className="text-xs text-muted-foreground">Hệ thống tự lấy nghỉ có phép/không phép của tháng liền trước tháng đã chọn.</p>
+                <p className="text-xs text-muted-foreground">Hệ thống tự lấy vắng có phép/không phép của tháng liền trước tháng đã chọn.</p>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="note">Ghi chú</Label>
