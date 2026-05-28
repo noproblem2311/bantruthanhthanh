@@ -254,25 +254,33 @@ export async function createStudentAction(formData: FormData) {
   if (!parsed.success) redirectWithMessage("/admin/students/new", "error", parsed.error.issues[0]?.message || "Dữ liệu học sinh chưa hợp lệ");
 
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const studentPayload = {
+    parent_id: parsed.data.parent_id,
+    full_name: parsed.data.full_name,
+    nickname: parsed.data.nickname || null,
+    date_of_birth: parsed.data.date_of_birth || null,
+    gender: parsed.data.gender || null,
+    school_name: parsed.data.school_name || null,
+    class_name: parsed.data.class_name || null,
+    health_notes: parsed.data.health_notes || null,
+    allergy_notes: parsed.data.allergy_notes || null,
+    pickup_notes: parsed.data.pickup_notes || null,
+    boarding_package_type: parsed.data.boarding_package_type,
+    enrollment_date: parsed.data.enrollment_date || null,
+    status: parsed.data.status,
+  };
+  let { data, error } = await supabase
     .from("students")
-    .insert({
-      parent_id: parsed.data.parent_id,
-      full_name: parsed.data.full_name,
-      nickname: parsed.data.nickname || null,
-      date_of_birth: parsed.data.date_of_birth || null,
-      gender: parsed.data.gender || null,
-      school_name: parsed.data.school_name || null,
-      class_name: parsed.data.class_name || null,
-      health_notes: parsed.data.health_notes || null,
-      allergy_notes: parsed.data.allergy_notes || null,
-      pickup_notes: parsed.data.pickup_notes || null,
-      boarding_package_type: parsed.data.boarding_package_type,
-      enrollment_date: parsed.data.enrollment_date || null,
-      status: parsed.data.status,
-    })
+    .insert(studentPayload)
     .select("id")
     .single();
+
+  if (isMissingEnrollmentDateColumnError(error)) {
+    const fallbackPayload = Object.fromEntries(Object.entries(studentPayload).filter(([key]) => key !== "enrollment_date"));
+    const fallbackResult = await supabase.from("students").insert(fallbackPayload).select("id").single();
+    data = fallbackResult.data;
+    error = fallbackResult.error;
+  }
 
   if (error || !data) redirectWithMessage("/admin/students/new", "error", "Không tạo được học sinh");
   revalidatePath("/admin/students");
@@ -287,24 +295,31 @@ export async function updateStudentAction(formData: FormData) {
   if (!parsed.success || !parsed.data.id) redirectWithMessage(path, "error", parsed.error?.issues[0]?.message || "Dữ liệu học sinh chưa hợp lệ");
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const studentPayload = {
+    parent_id: parsed.data.parent_id,
+    full_name: parsed.data.full_name,
+    nickname: parsed.data.nickname || null,
+    date_of_birth: parsed.data.date_of_birth || null,
+    gender: parsed.data.gender || null,
+    school_name: parsed.data.school_name || null,
+    class_name: parsed.data.class_name || null,
+    health_notes: parsed.data.health_notes || null,
+    allergy_notes: parsed.data.allergy_notes || null,
+    pickup_notes: parsed.data.pickup_notes || null,
+    boarding_package_type: parsed.data.boarding_package_type,
+    enrollment_date: parsed.data.enrollment_date || null,
+    status: parsed.data.status,
+  };
+  let { error } = await supabase
     .from("students")
-    .update({
-      parent_id: parsed.data.parent_id,
-      full_name: parsed.data.full_name,
-      nickname: parsed.data.nickname || null,
-      date_of_birth: parsed.data.date_of_birth || null,
-      gender: parsed.data.gender || null,
-      school_name: parsed.data.school_name || null,
-      class_name: parsed.data.class_name || null,
-      health_notes: parsed.data.health_notes || null,
-      allergy_notes: parsed.data.allergy_notes || null,
-      pickup_notes: parsed.data.pickup_notes || null,
-      boarding_package_type: parsed.data.boarding_package_type,
-      enrollment_date: parsed.data.enrollment_date || null,
-      status: parsed.data.status,
-    })
+    .update(studentPayload)
     .eq("id", parsed.data.id);
+
+  if (isMissingEnrollmentDateColumnError(error)) {
+    const fallbackPayload = Object.fromEntries(Object.entries(studentPayload).filter(([key]) => key !== "enrollment_date"));
+    const fallbackResult = await supabase.from("students").update(fallbackPayload).eq("id", parsed.data.id);
+    error = fallbackResult.error;
+  }
 
   if (error) redirectWithMessage(path, "error", "Không cập nhật được học sinh");
   revalidatePath("/admin/students");
@@ -404,8 +419,18 @@ type AbsenceBucket = {
   unexcusedDates: string[];
 };
 
+type SupabaseMutationError = {
+  code?: string;
+  message?: string;
+};
+
 function emptyAbsenceBucket(): AbsenceBucket {
   return { excusedDates: [], unexcusedDates: [] };
+}
+
+function isMissingEnrollmentDateColumnError(error: SupabaseMutationError | null) {
+  const message = error?.message || "";
+  return error?.code === "42703" || (error?.code === "PGRST204" && message.includes("enrollment_date"));
 }
 
 export async function captureMonthlyHistoryAction(formData: FormData) {
@@ -588,7 +613,7 @@ export async function saveMonthlyTuitionRecordsAction(formData: FormData) {
   const { start, end } = getMonthBounds(parsed.data.billing_year_month);
   const supabase = await createClient();
   const [{ data: students }, { data: attendanceRecords }] = await Promise.all([
-    supabase.from("students").select("id,created_at,enrollment_date,status").eq("status", "active").in("id", studentIds),
+    supabase.from("students").select("*").eq("status", "active").in("id", studentIds),
     supabase.from("attendance_records").select("student_id").gte("attendance_date", start).lt("attendance_date", end).in("student_id", studentIds),
   ]);
   const attendanceStudentIds = new Set((attendanceRecords || []).map((record: { student_id: string }) => record.student_id));
@@ -683,7 +708,7 @@ export async function updateOffRequestStatusAction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { data: request } = await supabase.from("off_requests").select("student_id,off_date,students(created_at,enrollment_date)").eq("id", id).single();
+  const { data: request } = await supabase.from("off_requests").select("student_id,off_date,students(*)").eq("id", id).single();
   const requestStudent = Array.isArray(request?.students) ? request?.students[0] : request?.students;
   if (request && (status === "approved" || status === "auto_approved")) {
     if (!requestStudent) {

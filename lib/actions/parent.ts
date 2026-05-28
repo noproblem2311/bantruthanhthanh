@@ -60,7 +60,7 @@ export async function createOffRequestAction(formData: FormData) {
 
   const { data: student } = await supabase
     .from("students")
-    .select("id,created_at,enrollment_date")
+    .select("*")
     .eq("id", parsed.data.student_id)
     .eq("parent_id", parent.id)
     .eq("status", "active")
