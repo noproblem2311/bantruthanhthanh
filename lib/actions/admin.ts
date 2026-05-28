@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirectWithMessage } from "@/lib/auth/messages";
 import { getMonthBounds, getPreviousYearMonth, getYearMonth, isSunday } from "@/lib/date";
 import { requireRole } from "@/lib/permissions";
-import { isStudentEligibleBeforeDate, isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
+import { getStudentAttendanceStartDate, isStudentEligibleBeforeDate, isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
 import {
   appSettingsSchema,
   createParentSchema,
@@ -268,6 +268,7 @@ export async function createStudentAction(formData: FormData) {
       allergy_notes: parsed.data.allergy_notes || null,
       pickup_notes: parsed.data.pickup_notes || null,
       boarding_package_type: parsed.data.boarding_package_type,
+      enrollment_date: parsed.data.enrollment_date || null,
       status: parsed.data.status,
     })
     .select("id")
@@ -300,6 +301,7 @@ export async function updateStudentAction(formData: FormData) {
       allergy_notes: parsed.data.allergy_notes || null,
       pickup_notes: parsed.data.pickup_notes || null,
       boarding_package_type: parsed.data.boarding_package_type,
+      enrollment_date: parsed.data.enrollment_date || null,
       status: parsed.data.status,
     })
     .eq("id", parsed.data.id);
@@ -450,7 +452,12 @@ export async function captureMonthlyHistoryAction(formData: FormData) {
   const studentsById = new Map(studentRows.map((student) => [student.id, student]));
   for (const record of ((attendance || []) as AttendanceRecord[]).filter((item) => {
     const student = studentsById.get(item.student_id);
-    return Boolean(student && !isSunday(item.attendance_date) && ["excused_absent", "unexcused_absent"].includes(item.status));
+    return Boolean(
+      student &&
+        item.attendance_date >= getStudentAttendanceStartDate(student) &&
+        !isSunday(item.attendance_date) &&
+        ["excused_absent", "unexcused_absent"].includes(item.status),
+    );
   })) {
     const bucket = absencesByStudent.get(record.student_id) || emptyAbsenceBucket();
     if (record.status === "excused_absent") bucket.excusedDates.push(record.attendance_date);
@@ -481,6 +488,7 @@ export async function captureMonthlyHistoryAction(formData: FormData) {
       allergy_notes: student.allergy_notes,
       pickup_notes: student.pickup_notes,
       boarding_package_type: student.boarding_package_type,
+      enrollment_date: student.enrollment_date,
       student_status: student.status,
       parent_full_name: student.parents?.full_name || null,
       parent_username: student.parents?.username || null,
@@ -580,12 +588,12 @@ export async function saveMonthlyTuitionRecordsAction(formData: FormData) {
   const { start, end } = getMonthBounds(parsed.data.billing_year_month);
   const supabase = await createClient();
   const [{ data: students }, { data: attendanceRecords }] = await Promise.all([
-    supabase.from("students").select("id,created_at,status").eq("status", "active").in("id", studentIds),
+    supabase.from("students").select("id,created_at,enrollment_date,status").eq("status", "active").in("id", studentIds),
     supabase.from("attendance_records").select("student_id").gte("attendance_date", start).lt("attendance_date", end).in("student_id", studentIds),
   ]);
   const attendanceStudentIds = new Set((attendanceRecords || []).map((record: { student_id: string }) => record.student_id));
   const eligibleStudentIds = new Set(
-    ((students || []) as Array<Pick<Student, "id" | "created_at">>)
+    ((students || []) as Array<Pick<Student, "id" | "created_at" | "enrollment_date">>)
       .filter((student) => isStudentEligibleBeforeDate(student, end) || attendanceStudentIds.has(student.id))
       .map((student) => student.id),
   );

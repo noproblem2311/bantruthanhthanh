@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
-import { getMonthBounds, getVietnamToday, getYearMonth } from "@/lib/date";
+import { getMonthBounds, getPreviousYearMonth, getVietnamToday, getYearMonth } from "@/lib/date";
 import { buildStudentMonthlyFee } from "@/lib/fees";
 import { attendanceBadgeVariant, attendanceLabels, offRequestBadgeVariant, offRequestLabels } from "@/lib/labels";
 import { isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
@@ -16,6 +16,7 @@ export default async function AdminDashboardPage() {
   const today = getVietnamToday();
   const yearMonth = getYearMonth();
   const { start, end } = getMonthBounds(yearMonth);
+  const previousMonthBounds = getMonthBounds(getPreviousYearMonth(yearMonth));
 
   const [
     { count: activeStudents },
@@ -25,6 +26,7 @@ export default async function AdminDashboardPage() {
     { data: todayOffRequests },
     { count: pendingPasswordRequests },
     { data: monthlyAttendance },
+    { data: previousMonthAttendance },
     { data: feeSetting },
     { data: latestOffRequests },
     { data: latestPasswordRequests },
@@ -38,6 +40,7 @@ export default async function AdminDashboardPage() {
     supabase.from("off_requests").select("*, students(full_name), parents(full_name,username)").eq("off_date", today),
     supabase.from("password_reset_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("attendance_records").select("*").gte("attendance_date", start).lt("attendance_date", end),
+    supabase.from("attendance_records").select("*").gte("attendance_date", previousMonthBounds.start).lt("attendance_date", previousMonthBounds.end),
     supabase.from("fee_settings").select("*").eq("year_month", yearMonth).maybeSingle(),
     supabase.from("off_requests").select("*, students(full_name), parents(full_name,username)").order("submitted_at", { ascending: false }).limit(5),
     supabase.from("password_reset_requests").select("*, parents(full_name,username)").order("requested_at", { ascending: false }).limit(5),
@@ -55,6 +58,10 @@ export default async function AdminDashboardPage() {
     const student = activeStudentsById.get(record.student_id);
     return Boolean(student);
   });
+  const eligiblePreviousMonthAttendance = ((previousMonthAttendance || []) as AttendanceRecord[]).filter((record) => {
+    const student = activeStudentsById.get(record.student_id);
+    return Boolean(student);
+  });
   const presentToday = eligibleTodayAttendance.filter((record) => record.status === "present").length;
   const excusedToday = eligibleTodayAttendance.filter((record) => record.status === "excused_absent").length;
   const markedStudentIds = new Set(eligibleTodayAttendance.filter((record) => record.status !== "not_marked").map((record) => record.student_id));
@@ -64,7 +71,7 @@ export default async function AdminDashboardPage() {
     ? activeStudentList.map((student) =>
         buildStudentMonthlyFee(
           student,
-          eligibleMonthlyAttendance.filter((record) => record.student_id === student.id),
+          eligiblePreviousMonthAttendance.filter((record) => record.student_id === student.id),
           feeSetting as FeeSetting,
         ),
       )
@@ -85,7 +92,7 @@ export default async function AdminDashboardPage() {
         <StatCard
           title="Doanh thu dự kiến tháng"
           value={estimatedRevenue === null ? "Chưa cấu hình" : formatCurrency(estimatedRevenue)}
-          description={`${presentMonth} buổi có mặt, ${chargedAbsences} ngày nghỉ tính trừ`}
+          description={`${presentMonth} buổi có mặt tháng này, ${chargedAbsences} buổi vắng có phép tháng trước`}
           icon={CreditCard}
         />
       </div>

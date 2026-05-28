@@ -7,6 +7,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { boardingPackageLabels } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
+import { formatVietnamDate, getVietnamDateFromTimestamp } from "@/lib/date";
 import type { BoardingPackageType, Parent, Student } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -78,6 +79,7 @@ export default async function ManagerStudentsPage({ searchParams }: { searchPara
                 <TH>Học sinh</TH>
                 <TH>Trường/Lớp</TH>
                 <TH>Gói bán trú</TH>
+                <TH>Ngày vào</TH>
                 <TH>Phụ huynh liên hệ</TH>
                 <TH>Ghi chú</TH>
               </tr>
@@ -100,6 +102,7 @@ export default async function ManagerStudentsPage({ searchParams }: { searchPara
                     <p className="text-sm text-muted-foreground">{student.class_name || "Chưa có lớp"}</p>
                   </TD>
                   <TD>{boardingPackageLabels[(student.boarding_package_type || "weekday") as BoardingPackageType]}</TD>
+                  <TD>{formatVietnamDate(student.enrollment_date || getVietnamDateFromTimestamp(student.created_at))}</TD>
                   <TD>
                     <p>{student.parents?.full_name || student.parents?.username}</p>
                     <p className="text-sm text-muted-foreground">{student.parents?.phone || "Chưa có SĐT"}</p>
