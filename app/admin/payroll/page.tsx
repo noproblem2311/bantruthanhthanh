@@ -91,8 +91,8 @@ function ShiftCheckbox({
   defaultChecked: boolean;
 }) {
   return (
-    <label className="flex min-h-8 cursor-pointer items-center justify-between gap-1 rounded-md border bg-white px-1.5 text-[10px] font-medium transition hover:bg-muted/70 sm:px-2 sm:text-xs">
-      <span className="truncate">{label}</span>
+    <label className="flex min-h-9 cursor-pointer items-center justify-between gap-2 rounded-md border bg-white px-2 text-xs font-medium leading-tight transition hover:bg-muted/70">
+      <span className="min-w-0 break-words">{label}</span>
       <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 shrink-0 accent-primary" />
     </label>
   );
@@ -220,46 +220,48 @@ function EditableWorkCalendar({
             <input type="hidden" name="year_month" value={yearMonth} />
             <input type="hidden" name="redirect_to" value={redirectTo} />
 
-            <div className="grid grid-cols-7 gap-1.5">
-              {weekdayLabels.map((label) => (
-                <div key={label} className="py-1 text-center text-xs font-semibold text-muted-foreground">
-                  {label}
-                </div>
-              ))}
-              {Array.from({ length: leadingBlankCount }).map((_, index) => (
-                <div key={`blank-${index}`} className="min-h-28 rounded-md border border-transparent" />
-              ))}
-              {Array.from({ length: daysInMonth }).map((_, index) => {
-                const day = index + 1;
-                const date = formatDate(year, month, day);
-                const session = sessionMap.get(date);
-                const hasShift = Boolean(session?.morning_worked || session?.afternoon_worked);
-
-                return (
-                  <div
-                    key={date}
-                    className={cn(
-                      "min-h-28 rounded-md border bg-white p-1.5 sm:p-2",
-                      hasShift ? "border-emerald-200 bg-emerald-50/70" : "border-slate-200",
-                    )}
-                  >
-                    <input type="hidden" name="work_date" value={date} />
-                    <div className="mb-2 flex items-center justify-between gap-1">
-                      <span className="text-sm font-semibold">{day}</span>
-                      <span className={cn("h-2.5 w-2.5 rounded-full", hasShift ? "bg-emerald-500" : "bg-slate-300")} />
-                    </div>
-                    <div className="grid gap-1.5">
-                      <ShiftCheckbox name={`morning_${date}`} label="Sáng+trưa" defaultChecked={Boolean(session?.morning_worked)} />
-                      <ShiftCheckbox name={`afternoon_${date}`} label="Chiều 14-17h" defaultChecked={Boolean(session?.afternoon_worked)} />
-                    </div>
+            <div className="-mx-1 overflow-x-auto px-1 pb-2">
+              <div className="grid min-w-[840px] grid-cols-7 gap-2">
+                {weekdayLabels.map((label) => (
+                  <div key={label} className="py-1 text-center text-xs font-semibold text-muted-foreground">
+                    {label}
                   </div>
-                );
-              })}
+                ))}
+                {Array.from({ length: leadingBlankCount }).map((_, index) => (
+                  <div key={`blank-${index}`} className="min-h-28 rounded-md border border-transparent" />
+                ))}
+                {Array.from({ length: daysInMonth }).map((_, index) => {
+                  const day = index + 1;
+                  const date = formatDate(year, month, day);
+                  const session = sessionMap.get(date);
+                  const hasShift = Boolean(session?.morning_worked || session?.afternoon_worked);
+
+                  return (
+                    <div
+                      key={date}
+                      className={cn(
+                        "min-h-28 rounded-md border bg-white p-2",
+                        hasShift ? "border-emerald-200 bg-emerald-50/70" : "border-slate-200",
+                      )}
+                    >
+                      <input type="hidden" name="work_date" value={date} />
+                      <div className="mb-2 flex items-center justify-between gap-1">
+                        <span className="text-sm font-semibold">{day}</span>
+                        <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", hasShift ? "bg-emerald-500" : "bg-slate-300")} />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <ShiftCheckbox name={`morning_${date}`} label="Sáng + trưa" defaultChecked={Boolean(session?.morning_worked)} />
+                        <ShiftCheckbox name={`afternoon_${date}`} label="Chiều 14-17h" defaultChecked={Boolean(session?.afternoon_worked)} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex flex-col gap-3 rounded-md border bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">Admin có thể tick/bỏ tick buổi công của quản lý đang chọn.</p>
-              <SubmitButton pendingText="Đang lưu..." className="sm:w-auto">
+              <p className="min-w-0 text-sm text-muted-foreground">Admin có thể tick/bỏ tick buổi công của quản lý đang chọn.</p>
+              <SubmitButton pendingText="Đang lưu..." className="shrink-0 sm:w-auto">
                 <Save className="h-4 w-4" />
                 Lưu chấm công
               </SubmitButton>
@@ -464,7 +466,7 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
           </Card>
         </>
       ) : (
-        <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
+        <div className="grid gap-5 2xl:grid-cols-[360px_minmax(0,1fr)]">
           <Card>
             <CardHeader>
               <CardTitle>Danh sách quản lý</CardTitle>
