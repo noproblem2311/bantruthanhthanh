@@ -31,7 +31,7 @@ export async function markAttendanceAction(formData: FormData) {
   const supabase = await createClient();
   const { data: student } = await supabase
     .from("students")
-    .select("*")
+    .select("id,created_at,enrollment_date,status")
     .eq("id", parsed.data.student_id)
     .eq("status", "active")
     .single();
@@ -77,7 +77,7 @@ export async function saveAttendanceBatchAction(formData: FormData) {
   const { data: students } = studentIds.length
     ? await supabase
         .from("students")
-        .select("*")
+        .select("id,created_at,enrollment_date,status")
         .eq("status", "active")
         .in("id", studentIds)
     : { data: [] };
@@ -138,7 +138,7 @@ export async function bulkMarkPresentAction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { data: students } = await supabase.from("students").select("*").eq("status", "active");
+  const { data: students } = await supabase.from("students").select("id,created_at,enrollment_date").eq("status", "active");
   const studentIds = ((students || []) as Array<Pick<Student, "id" | "created_at" | "enrollment_date">>)
     .filter((student) => isStudentEligibleForAttendanceDate(student, parsed.data.attendance_date))
     .map((student) => student.id);
