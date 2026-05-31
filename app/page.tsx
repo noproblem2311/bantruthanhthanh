@@ -1,6 +1,10 @@
 import { ArrowRight, BookOpenCheck, ChefHat, Code2, GraduationCap, Headphones, Laptop, MapPin, Phone, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { roleDashboard } from "@/lib/permissions";
+import type { AppRole } from "@/lib/types";
+import { HomeAuthRedirect } from "@/components/auth/home-auth-redirect";
 import { ButtonLink } from "@/components/ui/button";
 
 const englishUrl = "https://ms-duyen-english.vercel.app/";
@@ -50,11 +54,21 @@ const strengths = [
 
 export default async function HomePage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: profile } = await supabase.from("profiles").select("role,status").eq("auth_user_id", user.id).maybeSingle();
+    if (profile?.status === "active") redirect(roleDashboard(profile.role as AppRole));
+  }
+
   const { data: settings } = await supabase.from("app_settings").select("*").limit(1).maybeSingle();
   const centerName = settings?.center_name && settings.center_name !== oldCenterName ? settings.center_name : defaultCenterName;
 
   return (
     <main className="min-h-screen bg-white">
+      <HomeAuthRedirect />
       <section className="relative overflow-hidden">
         <Image
           src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1800&q=80"
