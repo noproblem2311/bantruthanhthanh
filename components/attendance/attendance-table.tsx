@@ -75,6 +75,20 @@ function StatusChoices({ studentId, status, compact = false }: { studentId: stri
   );
 }
 
+function SaturdayCheckbox({ student }: { student: AttendanceStudent }) {
+  return (
+    <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm font-medium transition has-[:checked]:border-amber-400 has-[:checked]:bg-amber-50">
+      <input
+        type="checkbox"
+        name={`saturday_${student.id}`}
+        defaultChecked={student.boarding_package_type === "saturday"}
+        className="h-4 w-4 shrink-0 accent-primary"
+      />
+      <span>Ở thứ 7</span>
+    </label>
+  );
+}
+
 export function AttendanceTable({
   date,
   students,
@@ -158,6 +172,7 @@ export function AttendanceTable({
                           <Badge variant={attendanceBadgeVariant(status)}>{attendanceLabels[status]}</Badge>
                         </div>
                         {hasApprovedOff ? <Badge variant="info">Đã xin nghỉ</Badge> : null}
+                        <SaturdayCheckbox student={student} />
                         <StatusChoices studentId={student.id} status={status} compact />
                         <Textarea name={`note_${student.id}`} defaultValue={record?.note || ""} className="min-h-16" placeholder="Ghi chú ngắn" />
                       </div>
@@ -194,6 +209,7 @@ export function AttendanceTable({
               <tr>
                 <TH>Học sinh</TH>
                 <TH>Hiện tại</TH>
+                <TH>Thứ 7</TH>
                 <TH>Chọn trạng thái</TH>
                 <TH>Ghi chú</TH>
               </tr>
@@ -203,7 +219,7 @@ export function AttendanceTable({
                 <Fragment key={group.label || "all"}>
                   {groupMarkedStudents ? (
                     <tr className="bg-muted/70">
-                      <TD colSpan={4} className="py-2 text-xs font-semibold uppercase text-muted-foreground">
+                      <TD colSpan={5} className="py-2 text-xs font-semibold uppercase text-muted-foreground">
                         {group.label} ({group.students.length})
                       </TD>
                     </tr>
@@ -232,6 +248,9 @@ export function AttendanceTable({
                         </TD>
                         <TD>
                           <Badge variant={attendanceBadgeVariant(status)}>{attendanceLabels[status]}</Badge>
+                        </TD>
+                        <TD className="min-w-[120px]">
+                          <SaturdayCheckbox student={student} />
                         </TD>
                         <TD className="min-w-[440px]">
                           <input type="hidden" name="student_id" value={student.id} />

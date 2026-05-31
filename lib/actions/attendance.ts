@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { formatVietnamDate } from "@/lib/date";
 import { requireRole } from "@/lib/permissions";
 import { isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
@@ -77,15 +78,17 @@ export async function saveAttendanceBatchAction(formData: FormData) {
   const { data: students } = studentIds.length
     ? await supabase
         .from("students")
-        .select("id,created_at,enrollment_date,status")
+        .select("id,created_at,enrollment_date,status,boarding_package_type")
         .eq("status", "active")
         .in("id", studentIds)
     : { data: [] };
   const eligibleStudents = new Map(
-    ((students || []) as Array<Pick<Student, "id" | "created_at" | "enrollment_date">>)
+    ((students || []) as Array<Pick<Student, "id" | "created_at" | "enrollment_date" | "boarding_package_type">>)
       .filter((student) => isStudentEligibleForAttendanceDate(student, attendanceDate))
       .map((student) => [student.id, student]),
   );
+  const saturdayStudentIds: string[] = [];
+  const weekdayStudentIds: string[] = [];
 
   for (const studentId of studentIds) {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(studentId)) {
@@ -94,6 +97,16 @@ export async function saveAttendanceBatchAction(formData: FormData) {
 
     if (!eligibleStudents.has(studentId)) {
       redirectWithMessage(path, "error", "Danh sách có học sinh chưa hợp lệ cho ngày điểm danh");
+    }
+
+    const student = eligibleStudents.get(studentId);
+    const attendsSaturday = formData.get(`saturday_${studentId}`) === "on";
+    if (student?.boarding_package_type !== (attendsSaturday ? "saturday" : "weekday")) {
+      if (attendsSaturday) {
+        saturdayStudentIds.push(studentId);
+      } else {
+        weekdayStudentIds.push(studentId);
+      }
     }
 
     const status = formData.get(`status_${studentId}`);
@@ -116,6 +129,18 @@ export async function saveAttendanceBatchAction(formData: FormData) {
 
   if (rows.length === 0) {
     redirectWithMessage(path, "error", "Không có học sinh nào để lưu điểm danh");
+  }
+
+  if (saturdayStudentIds.length > 0 || weekdayStudentIds.length > 0) {
+    const admin = createAdminClient();
+    if (saturdayStudentIds.length > 0) {
+      const { error } = await admin.from("students").update({ boarding_package_type: "saturday" }).in("id", saturdayStudentIds);
+      if (error) redirectWithMessage(path, "error", "Không cập nhật được thông tin ở thứ 7");
+    }
+    if (weekdayStudentIds.length > 0) {
+      const { error } = await admin.from("students").update({ boarding_package_type: "weekday" }).in("id", weekdayStudentIds);
+      if (error) redirectWithMessage(path, "error", "Không cập nhật được thông tin ở thứ 7");
+    }
   }
 
   const { error } = await supabase.from("attendance_records").upsert(rows, { onConflict: "student_id,attendance_date" });
