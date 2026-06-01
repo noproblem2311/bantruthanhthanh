@@ -1,11 +1,16 @@
-import { RotateCcw, Save, UserCheck, UserMinus, UserX } from "lucide-react";
+import { Pencil, RotateCcw, Save, UserCheck, UserMinus, UserX } from "lucide-react";
 import { Fragment } from "react";
-import { saveAttendanceBatchAction } from "@/lib/actions/attendance";
+import { saveAttendanceBatchAction, updateAttendanceStudentInfoAction } from "@/lib/actions/attendance";
 import { formatVietnamDate } from "@/lib/date";
 import { attendanceBadgeVariant, attendanceLabels } from "@/lib/labels";
 import type { AttendanceRecord, AttendanceStatus, Student } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -89,6 +94,73 @@ function SaturdayCheckbox({ student }: { student: AttendanceStudent }) {
   );
 }
 
+function StudentEditForms({ students, redirectTo }: { students: AttendanceStudent[]; redirectTo: string }) {
+  const uniqueStudents = Array.from(new Map(students.map((student) => [student.id, student])).values());
+
+  return (
+    <>
+      {uniqueStudents.map((student) => (
+        <form key={student.id} id={`attendance-student-edit-${student.id}`} action={updateAttendanceStudentInfoAction}>
+          <input type="hidden" name="student_id" value={student.id} />
+          <input type="hidden" name="redirect_to" value={redirectTo} />
+        </form>
+      ))}
+    </>
+  );
+}
+
+function StudentEditDialog({ student }: { student: AttendanceStudent }) {
+  const formId = `attendance-student-edit-${student.id}`;
+
+  return (
+    <Dialog
+      title={`Sửa ${student.full_name}`}
+      trigger={
+        <Button type="button" variant="outline" size="sm" className="shrink-0">
+          <Pencil className="h-4 w-4" />
+          Sửa
+        </Button>
+      }
+    >
+      <div className="grid gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor={`full_name_${student.id}`}>Tên học sinh</Label>
+          <Input id={`full_name_${student.id}`} form={formId} name="full_name" defaultValue={student.full_name} required />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <Label htmlFor={`class_name_${student.id}`}>Lớp</Label>
+            <Input id={`class_name_${student.id}`} form={formId} name="class_name" defaultValue={student.class_name || ""} />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor={`school_name_${student.id}`}>Trường</Label>
+            <Input id={`school_name_${student.id}`} form={formId} name="school_name" defaultValue={student.school_name || ""} />
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <Label htmlFor={`enrollment_date_${student.id}`}>Ngày vào</Label>
+            <Input id={`enrollment_date_${student.id}`} form={formId} name="enrollment_date" type="date" defaultValue={student.enrollment_date || ""} />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor={`boarding_package_type_${student.id}`}>Gói bán trú</Label>
+            <Select id={`boarding_package_type_${student.id}`} form={formId} name="boarding_package_type" defaultValue={student.boarding_package_type || "weekday"}>
+              <option value="weekday">Không thứ 7</option>
+              <option value="saturday">Có thứ 7</option>
+            </Select>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 border-t pt-4">
+          <SubmitButton form={formId} pendingText="Đang lưu..." className="w-full sm:w-auto">
+            <Save className="h-4 w-4" />
+            Lưu
+          </SubmitButton>
+        </div>
+      </div>
+    </Dialog>
+  );
+}
+
 export function AttendanceTable({
   date,
   students,
@@ -131,6 +203,7 @@ export function AttendanceTable({
 
   return (
     <div id={searchTargetId}>
+      <StudentEditForms students={students} redirectTo={redirectTo} />
       <Card className="md:hidden">
         <form id={mobileFormId} action={saveAttendanceBatchAction}>
           <AttendanceHiddenFields date={date} redirectTo={redirectTo} />
@@ -169,7 +242,10 @@ export function AttendanceTable({
                             </p>
                             {student.parents?.phone ? <p className="text-xs text-muted-foreground">{student.parents.phone}</p> : null}
                           </div>
-                          <Badge variant={attendanceBadgeVariant(status)}>{attendanceLabels[status]}</Badge>
+                          <div className="grid shrink-0 justify-items-end gap-2">
+                            <Badge variant={attendanceBadgeVariant(status)}>{attendanceLabels[status]}</Badge>
+                            <StudentEditDialog student={student} />
+                          </div>
                         </div>
                         {hasApprovedOff ? <Badge variant="info">Đã xin nghỉ</Badge> : null}
                         <SaturdayCheckbox student={student} />
@@ -238,7 +314,10 @@ export function AttendanceTable({
                       >
                         <TD>
                           <div className="space-y-1">
-                            <p className="font-medium">{student.full_name}</p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-medium">{student.full_name}</p>
+                              <StudentEditDialog student={student} />
+                            </div>
                             <p className="text-xs text-muted-foreground">
                               {student.class_name || "Chưa có lớp"} · {student.parents?.full_name || student.parents?.username || "Chưa có PH"}
                               {student.parents?.phone ? ` · ${student.parents.phone}` : ""}

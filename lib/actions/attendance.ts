@@ -58,6 +58,50 @@ export async function markAttendanceAction(formData: FormData) {
   redirectWithMessage(path, "success", "Đã cập nhật điểm danh");
 }
 
+export async function updateAttendanceStudentInfoAction(formData: FormData) {
+  await requireRole(["admin", "manager"]);
+  const path = attendancePath(formData);
+  const studentId = formData.get("student_id");
+  const fullName = formData.get("full_name");
+  const className = formData.get("class_name");
+  const schoolName = formData.get("school_name");
+  const enrollmentDate = formData.get("enrollment_date");
+  const boardingPackageType = formData.get("boarding_package_type");
+
+  if (typeof studentId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(studentId)) {
+    redirectWithMessage(path, "error", "Học sinh không hợp lệ");
+  }
+
+  if (typeof fullName !== "string" || fullName.trim().length < 2) {
+    redirectWithMessage(path, "error", "Vui lòng nhập tên học sinh tối thiểu 2 ký tự");
+  }
+
+  if (typeof enrollmentDate === "string" && enrollmentDate && !/^\d{4}-\d{2}-\d{2}$/.test(enrollmentDate)) {
+    redirectWithMessage(path, "error", "Ngày vào không hợp lệ");
+  }
+
+  if (boardingPackageType !== "weekday" && boardingPackageType !== "saturday") {
+    redirectWithMessage(path, "error", "Gói bán trú không hợp lệ");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("students")
+    .update({
+      full_name: fullName.trim(),
+      class_name: typeof className === "string" && className.trim() ? className.trim() : null,
+      school_name: typeof schoolName === "string" && schoolName.trim() ? schoolName.trim() : null,
+      enrollment_date: typeof enrollmentDate === "string" && enrollmentDate ? enrollmentDate : null,
+      boarding_package_type: boardingPackageType,
+    })
+    .eq("id", studentId);
+
+  if (error) redirectWithMessage(path, "error", "Không cập nhật được thông tin học sinh");
+
+  revalidatePath(path.split("?")[0] || path);
+  redirectWithMessage(path, "success", "Đã cập nhật thông tin học sinh");
+}
+
 export async function saveAttendanceBatchAction(formData: FormData) {
   const profile = await requireRole(["admin", "manager"]);
   const path = attendancePath(formData);
