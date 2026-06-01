@@ -7,6 +7,7 @@ import { boardingPackageLabels } from "@/lib/labels";
 import type { BoardingPackageType, MonthlyHistorySnapshot, MonthlyHistoryStudent, ReceiptBatch, ReceiptItem } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+const DEFAULT_FOOD_CREDIT_PER_DAY = 18000;
 
 type ReceiptLine = {
   label: string;
@@ -43,10 +44,19 @@ function formatReceiptAmount(value: number | null) {
   return value === null ? "........................" : formatSignedCurrency(value);
 }
 
+function formatShortCurrency(value: number) {
+  if (value > 0 && value % 1000 === 0) return `${value / 1000}k`;
+  return formatCurrency(value);
+}
+
+function foodCreditLabel(amountPerDay = DEFAULT_FOOD_CREDIT_PER_DAY) {
+  return `Tiền ăn thừa tháng trước (${formatShortCurrency(amountPerDay)}/ngày)`;
+}
+
 const zeroFeeLines: ReceiptLine[] = [
   { label: "Tiền học Tin học", amount: 0 },
   { label: "Tiền học Tiếng Anh", amount: 0 },
-  { label: "Tiền ăn tháng trước còn thừa (18000đ/ngày)", amount: 0 },
+  { label: foodCreditLabel(), amount: 0 },
 ];
 
 function buildHistoryReceipts(snapshot: MonthlyHistorySnapshot, rows: MonthlyHistoryStudent[]) {
@@ -62,7 +72,7 @@ function buildHistoryReceipts(snapshot: MonthlyHistorySnapshot, rows: MonthlyHis
     }
     if (deductionTotal > 0) {
       lines.push({
-        label: `Trừ ${row.excused_absent_count} buổi nghỉ có phép ${snapshot.previous_year_month}`,
+        label: foodCreditLabel(row.excused_deduction_amount || DEFAULT_FOOD_CREDIT_PER_DAY),
         amount: -deductionTotal,
       });
     }
@@ -94,7 +104,7 @@ function buildManualReceipts(batch: ReceiptBatch, rows: ReceiptItem[]) {
     lines.push(
       { label: "Tiền học Tin học", amount: row.computer_amount },
       { label: "Tiền học Tiếng Anh", amount: row.english_amount },
-      { label: "Tiền ăn tháng trước còn thừa (18000đ/ngày)", amount: 0 },
+      { label: foodCreditLabel(), amount: 0 },
     );
 
     if (row.other_amount !== 0) {
