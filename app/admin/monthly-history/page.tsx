@@ -40,7 +40,9 @@ export default async function MonthlyHistoryPage({ searchParams }: { searchParam
         <Card>
           <CardHeader>
             <CardTitle>Capture lịch sử tháng</CardTitle>
-            <CardDescription>Lưu roster học sinh active hiện tại và số buổi vắng của tháng trước, không tính Chủ nhật.</CardDescription>
+            <CardDescription>
+              Lưu tất cả học sinh active có ngày vào không sau ngày capture, kèm số buổi vắng tháng trước (không tính Chủ nhật).
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form action={captureMonthlyHistoryAction} className="grid gap-4">

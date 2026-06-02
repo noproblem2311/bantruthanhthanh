@@ -6,9 +6,14 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { redirectWithMessage } from "@/lib/auth/messages";
-import { getMonthBounds, getPreviousYearMonth, getYearMonth, isSunday } from "@/lib/date";
+import { getMonthBounds, getPreviousYearMonth, getVietnamToday, getYearMonth, isSunday } from "@/lib/date";
 import { requireRole } from "@/lib/permissions";
-import { getStudentAttendanceStartDate, isStudentEligibleBeforeDate, isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
+import {
+  getStudentAttendanceStartDate,
+  isStudentEligibleBeforeDate,
+  isStudentEligibleForAttendanceDate,
+  isStudentEligibleOnOrBeforeDate,
+} from "@/lib/student-attendance";
 import {
   appSettingsSchema,
   createParentSchema,
@@ -435,6 +440,7 @@ export async function captureMonthlyHistoryAction(formData: FormData) {
   }
 
   const allStudentIds = allStudentRows.map((student) => student.id);
+  const snapshotDate = getVietnamToday();
   const { data: attendance } = await supabase
     .from("attendance_records")
     .select("*")
@@ -442,8 +448,7 @@ export async function captureMonthlyHistoryAction(formData: FormData) {
     .lt("attendance_date", end)
     .in("student_id", allStudentIds)
     .order("attendance_date", { ascending: true });
-  const attendanceStudentIds = new Set(((attendance || []) as AttendanceRecord[]).map((record) => record.student_id));
-  const studentRows = allStudentRows.filter((student) => isStudentEligibleBeforeDate(student, end) || attendanceStudentIds.has(student.id));
+  const studentRows = allStudentRows.filter((student) => isStudentEligibleOnOrBeforeDate(student, snapshotDate));
   if (studentRows.length === 0) {
     redirectWithMessage("/admin/monthly-history", "error", "Chưa có học sinh hợp lệ để capture tháng này");
   }

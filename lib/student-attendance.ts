@@ -15,3 +15,7 @@ export function isStudentEligibleForAttendanceDate(student: StudentAttendanceSta
 export function isStudentEligibleBeforeDate(student: StudentAttendanceStart, exclusiveEndDate: string) {
   return getStudentAttendanceStartDate(student) < exclusiveEndDate;
 }
+
+export function isStudentEligibleOnOrBeforeDate(student: StudentAttendanceStart, inclusiveEndDate: string) {
+  return getStudentAttendanceStartDate(student) <= inclusiveEndDate;
+}
