@@ -20,6 +20,7 @@ type TuitionStudentRowProps = {
     previousMonthDebt: number | null;
     unpaidMonths: { billingYearMonth: string; label: string; amount: number | null }[];
   };
+  searchText?: string;
 };
 
 function StatusCheckbox({
@@ -61,9 +62,16 @@ export function TuitionStudentRow({
   previousMonthLabel,
   currency,
   debt,
+  searchText,
 }: TuitionStudentRowProps) {
   return (
-    <article className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
+    <article
+      className="rounded-xl border bg-white p-4 shadow-sm sm:p-5"
+      data-search-key={studentId}
+      data-search-text={searchText || `${fullName} ${studentClassName || ""} ${parentName || ""} ${parentUsername || ""} ${parentPhone || ""}`}
+      data-filter-payment={isPaid ? "paid" : "unpaid"}
+      data-filter-receipt={receiptSent ? "sent" : "unsent"}
+    >
       <input type="hidden" name="student_id" value={studentId} />
 
       <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-start sm:justify-between">

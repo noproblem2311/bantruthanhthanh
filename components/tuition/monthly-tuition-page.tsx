@@ -1,6 +1,7 @@
 import { CreditCard, ReceiptText, Save, UsersRound } from "lucide-react";
 import { saveMonthlyTuitionRecordsAction } from "@/lib/actions/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ClientListFilters } from "@/components/ui/client-list-filters";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -95,6 +96,7 @@ function TuitionGroupSection({
             previousMonthLabel={previousMonthLabel}
             currency={currency}
             debt={debtSummaries.get(row.studentId)}
+            searchText={`${row.fullName} ${row.className || ""} ${row.parentName || ""} ${row.parentUsername || ""} ${row.parentPhone || ""}`}
           />
         ))}
       </div>
@@ -168,7 +170,36 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
           <CardTitle>Danh sách học phí tháng {billingYearMonth}</CardTitle>
         </CardHeader>
         <CardContent className="p-4 sm:p-5">
-          <form action={saveMonthlyTuitionRecordsAction} className="space-y-6">
+          {rows.length > 0 ? (
+            <ClientListFilters
+              targetId="monthly-tuition-results"
+              searchPlaceholder="Học sinh, lớp, phụ huynh, SĐT"
+              countLabel="học sinh"
+              className="mb-5 lg:grid-cols-[1fr_200px_200px]"
+              disableControlsWhenHidden
+              filters={[
+                {
+                  key: "payment",
+                  label: "Tình trạng nộp",
+                  options: [
+                    { value: "all", label: "Tất cả" },
+                    { value: "unpaid", label: "Chưa nộp" },
+                    { value: "paid", label: "Đã nộp" },
+                  ],
+                },
+                {
+                  key: "receipt",
+                  label: "Phiếu thu",
+                  options: [
+                    { value: "all", label: "Tất cả" },
+                    { value: "unsent", label: "Chưa gửi phiếu" },
+                    { value: "sent", label: "Đã gửi phiếu" },
+                  ],
+                },
+              ]}
+            />
+          ) : null}
+          <form id="monthly-tuition-results" action={saveMonthlyTuitionRecordsAction} className="space-y-6">
             <input type="hidden" name="billing_year_month" value={billingYearMonth} />
             <input type="hidden" name="redirect_to" value={`${basePath}?month=${billingYearMonth}`} />
 
