@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Textarea } from "@/components/ui/textarea";
-import { boardingPackageLabels } from "@/lib/labels";
+import { boardingPackageOptions } from "@/lib/labels";
 import { getVietnamDateFromTimestamp } from "@/lib/date";
 import type { Parent, Student } from "@/lib/types";
 import { StudentRequiredFieldsAlert } from "./student-required-fields-alert";
@@ -68,8 +68,11 @@ export function StudentForm({ student, parents }: { student?: Student; parents: 
             <div className="grid gap-2">
               <Label htmlFor="boarding_package_type">Gói bán trú</Label>
               <Select id="boarding_package_type" name="boarding_package_type" defaultValue={student?.boarding_package_type || "weekday"}>
-                <option value="weekday">{boardingPackageLabels.weekday}</option>
-                <option value="saturday">{boardingPackageLabels.saturday}</option>
+                {boardingPackageOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </Select>
             </div>
             <div className="grid gap-2">

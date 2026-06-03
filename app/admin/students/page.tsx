@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
-import { boardingPackageLabels, statusLabels } from "@/lib/labels";
+import { boardingPackageLabels, boardingPackageOptions, statusLabels } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
 import { formatVietnamDate, getVietnamDateFromTimestamp } from "@/lib/date";
 import type { BoardingPackageType, Parent, RecordStatus, Student } from "@/lib/types";
@@ -78,8 +78,11 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
               <Label htmlFor="package">Gói bán trú</Label>
               <Select id="package" name="package" defaultValue={packageType}>
                 <option value="all">Tất cả</option>
-                <option value="weekday">{boardingPackageLabels.weekday}</option>
-                <option value="saturday">{boardingPackageLabels.saturday}</option>
+                {boardingPackageOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </Select>
             </div>
             <SubmitButton pendingText="Đang lọc...">Lọc</SubmitButton>

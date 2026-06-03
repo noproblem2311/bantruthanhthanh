@@ -26,6 +26,6 @@ begin
     where conname = 'students_boarding_package_type_check'
   ) then
     alter table public.students
-      add constraint students_boarding_package_type_check check (boarding_package_type in ('weekday', 'saturday'));
+      add constraint students_boarding_package_type_check check (boarding_package_type in ('weekday', 'saturday', 'two_days', 'three_days', 'four_days'));
   end if;
 end $$;

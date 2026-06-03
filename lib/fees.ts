@@ -9,7 +9,18 @@ type SupabaseLike = SupabaseClient;
 
 export const DEFAULT_SATURDAY_PACKAGE_AMOUNT = 850000;
 export const DEFAULT_WEEKDAY_PACKAGE_AMOUNT = 720000;
+export const DEFAULT_TWO_DAYS_PACKAGE_AMOUNT = 300000;
+export const DEFAULT_THREE_DAYS_PACKAGE_AMOUNT = 400000;
+export const DEFAULT_FOUR_DAYS_PACKAGE_AMOUNT = 590000;
 export const DEFAULT_ABSENCE_DEDUCTION_AMOUNT = 18000;
+
+export function getPackageAmount(packageType: BoardingPackageType, feeSetting: FeeSetting) {
+  if (packageType === "saturday") return feeSetting.saturday_package_amount ?? DEFAULT_SATURDAY_PACKAGE_AMOUNT;
+  if (packageType === "weekday") return feeSetting.weekday_package_amount ?? DEFAULT_WEEKDAY_PACKAGE_AMOUNT;
+  if (packageType === "two_days") return DEFAULT_TWO_DAYS_PACKAGE_AMOUNT;
+  if (packageType === "three_days") return DEFAULT_THREE_DAYS_PACKAGE_AMOUNT;
+  return DEFAULT_FOUR_DAYS_PACKAGE_AMOUNT;
+}
 
 export type StudentMonthlyFee = {
   student: Student;
@@ -60,12 +71,7 @@ export function buildStudentMonthlyFee(student: Student, records: AttendanceReco
   const saturdayAttendanceDates = attendanceDates.filter(isSaturday);
   const chargedAbsentDates = excusedAbsentDates.filter((date) => !isSunday(date)).sort();
   const packageType = student.boarding_package_type ?? "weekday";
-  const packageAmount =
-    feeSetting === null
-      ? null
-      : packageType === "saturday"
-        ? (feeSetting.saturday_package_amount ?? DEFAULT_SATURDAY_PACKAGE_AMOUNT)
-        : (feeSetting.weekday_package_amount ?? DEFAULT_WEEKDAY_PACKAGE_AMOUNT);
+  const packageAmount = feeSetting === null ? null : getPackageAmount(packageType, feeSetting);
   const absenceDeductionAmount = feeSetting === null ? null : (feeSetting.absence_deduction_amount ?? DEFAULT_ABSENCE_DEDUCTION_AMOUNT);
   const absenceDeductionTotal = absenceDeductionAmount === null ? null : chargedAbsentDates.length * absenceDeductionAmount;
 

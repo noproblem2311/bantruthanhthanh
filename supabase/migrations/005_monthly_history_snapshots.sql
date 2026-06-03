@@ -33,7 +33,7 @@ create table if not exists public.monthly_history_students (
   health_notes text,
   allergy_notes text,
   pickup_notes text,
-  boarding_package_type text not null check (boarding_package_type in ('weekday', 'saturday')),
+  boarding_package_type text not null check (boarding_package_type in ('weekday', 'saturday', 'two_days', 'three_days', 'four_days')),
   enrollment_date date,
   student_status text not null check (student_status in ('active', 'inactive')),
   parent_full_name text,

@@ -62,7 +62,7 @@ create table if not exists public.students (
   health_notes text,
   allergy_notes text,
   pickup_notes text,
-  boarding_package_type text not null default 'weekday' check (boarding_package_type in ('weekday', 'saturday')),
+  boarding_package_type text not null default 'weekday' check (boarding_package_type in ('weekday', 'saturday', 'two_days', 'three_days', 'four_days')),
   enrollment_date date,
   status text default 'active' check (status in ('active', 'inactive')),
   created_at timestamptz default now(),

@@ -29,7 +29,18 @@ export const statusLabels: Record<string, string> = {
 export const boardingPackageLabels: Record<BoardingPackageType, string> = {
   weekday: "Không thứ 7",
   saturday: "Có thứ 7",
+  two_days: "2 ngày/tuần",
+  three_days: "3 ngày/tuần",
+  four_days: "4 ngày/tuần",
 };
+
+export const boardingPackageOptions: Array<{ value: BoardingPackageType; label: string }> = [
+  { value: "saturday", label: boardingPackageLabels.saturday },
+  { value: "weekday", label: boardingPackageLabels.weekday },
+  { value: "two_days", label: boardingPackageLabels.two_days },
+  { value: "three_days", label: boardingPackageLabels.three_days },
+  { value: "four_days", label: boardingPackageLabels.four_days },
+];
 
 export function attendanceBadgeVariant(status: AttendanceStatus) {
   if (status === "present") return "success" as const;

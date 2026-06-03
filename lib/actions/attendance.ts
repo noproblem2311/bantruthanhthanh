@@ -8,7 +8,13 @@ import { requireRole } from "@/lib/permissions";
 import { isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
 import { attendanceStatusSchema, bulkAttendanceSchema, markAttendanceSchema } from "@/lib/validators/attendance";
 import { redirectWithMessage } from "@/lib/auth/messages";
-import type { Student } from "@/lib/types";
+import type { BoardingPackageType, Student } from "@/lib/types";
+
+const boardingPackageValues: BoardingPackageType[] = ["weekday", "saturday", "two_days", "three_days", "four_days"];
+
+function isBoardingPackageType(value: FormDataEntryValue | null): value is BoardingPackageType {
+  return typeof value === "string" && boardingPackageValues.includes(value as BoardingPackageType);
+}
 
 function attendancePath(formData: FormData) {
   const value = formData.get("redirect_to");
@@ -80,7 +86,7 @@ export async function updateAttendanceStudentInfoAction(formData: FormData) {
     redirectWithMessage(path, "error", "Ngày vào không hợp lệ");
   }
 
-  if (boardingPackageType !== "weekday" && boardingPackageType !== "saturday") {
+  if (!isBoardingPackageType(boardingPackageType)) {
     redirectWithMessage(path, "error", "Gói bán trú không hợp lệ");
   }
 
@@ -131,8 +137,7 @@ export async function saveAttendanceBatchAction(formData: FormData) {
       .filter((student) => isStudentEligibleForAttendanceDate(student, attendanceDate))
       .map((student) => [student.id, student]),
   );
-  const saturdayStudentIds: string[] = [];
-  const weekdayStudentIds: string[] = [];
+  const studentsByPackage = new Map<BoardingPackageType, string[]>();
 
   for (const studentId of studentIds) {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(studentId)) {
@@ -144,13 +149,12 @@ export async function saveAttendanceBatchAction(formData: FormData) {
     }
 
     const student = eligibleStudents.get(studentId);
-    const attendsSaturday = formData.get(`saturday_${studentId}`) === "on";
-    if (student?.boarding_package_type !== (attendsSaturday ? "saturday" : "weekday")) {
-      if (attendsSaturday) {
-        saturdayStudentIds.push(studentId);
-      } else {
-        weekdayStudentIds.push(studentId);
-      }
+    const packageType = formData.get(`package_${studentId}`);
+    if (!isBoardingPackageType(packageType)) {
+      redirectWithMessage(path, "error", "Vui lòng chọn gói bán trú cho tất cả học sinh hiển thị");
+    }
+    if (student?.boarding_package_type !== packageType) {
+      studentsByPackage.set(packageType, [...(studentsByPackage.get(packageType) || []), studentId]);
     }
 
     const status = formData.get(`status_${studentId}`);
@@ -175,15 +179,11 @@ export async function saveAttendanceBatchAction(formData: FormData) {
     redirectWithMessage(path, "error", "Không có học sinh nào để lưu điểm danh");
   }
 
-  if (saturdayStudentIds.length > 0 || weekdayStudentIds.length > 0) {
+  if (studentsByPackage.size > 0) {
     const admin = createAdminClient();
-    if (saturdayStudentIds.length > 0) {
-      const { error } = await admin.from("students").update({ boarding_package_type: "saturday" }).in("id", saturdayStudentIds);
-      if (error) redirectWithMessage(path, "error", "Không cập nhật được thông tin ở thứ 7");
-    }
-    if (weekdayStudentIds.length > 0) {
-      const { error } = await admin.from("students").update({ boarding_package_type: "weekday" }).in("id", weekdayStudentIds);
-      if (error) redirectWithMessage(path, "error", "Không cập nhật được thông tin ở thứ 7");
+    for (const [packageType, packageStudentIds] of studentsByPackage.entries()) {
+      const { error } = await admin.from("students").update({ boarding_package_type: packageType }).in("id", packageStudentIds);
+      if (error) redirectWithMessage(path, "error", "Không cập nhật được gói bán trú");
     }
   }
 

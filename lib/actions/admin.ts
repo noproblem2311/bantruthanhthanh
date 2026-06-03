@@ -28,6 +28,7 @@ import {
 } from "@/lib/validators/admin";
 import { normalizeUsername, slugify } from "@/lib/utils";
 import type { AttendanceRecord, FeeSetting, Parent, Student } from "@/lib/types";
+import { getPackageAmount } from "@/lib/fees";
 
 export type CredentialActionState = {
   ok?: boolean;
@@ -474,7 +475,7 @@ export async function captureMonthlyHistoryAction(formData: FormData) {
   const absenceDeductionAmount = fee?.absence_deduction_amount ?? null;
   const rows = studentRows.map((student) => {
     const bucket = absencesByStudent.get(student.id) || emptyAbsenceBucket();
-    const packageAmount = fee ? (student.boarding_package_type === "saturday" ? fee.saturday_package_amount : fee.weekday_package_amount) : null;
+    const packageAmount = fee ? getPackageAmount(student.boarding_package_type, fee) : null;
     const billingAmount =
       packageAmount === null || absenceDeductionAmount === null
         ? null

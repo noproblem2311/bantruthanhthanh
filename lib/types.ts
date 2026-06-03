@@ -3,7 +3,7 @@ export type RecordStatus = "active" | "inactive";
 export type AttendanceStatus = "present" | "excused_absent" | "unexcused_absent" | "not_marked";
 export type OffRequestStatus = "auto_approved" | "pending" | "approved" | "rejected" | "cancelled";
 export type PasswordResetStatus = "pending" | "resolved" | "rejected";
-export type BoardingPackageType = "weekday" | "saturday";
+export type BoardingPackageType = "weekday" | "saturday" | "two_days" | "three_days" | "four_days";
 
 export type Profile = {
   id: string;

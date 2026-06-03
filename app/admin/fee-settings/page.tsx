@@ -8,7 +8,14 @@ import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/server";
 import { getYearMonth } from "@/lib/date";
-import { DEFAULT_ABSENCE_DEDUCTION_AMOUNT, DEFAULT_SATURDAY_PACKAGE_AMOUNT, DEFAULT_WEEKDAY_PACKAGE_AMOUNT } from "@/lib/fees";
+import {
+  DEFAULT_ABSENCE_DEDUCTION_AMOUNT,
+  DEFAULT_FOUR_DAYS_PACKAGE_AMOUNT,
+  DEFAULT_SATURDAY_PACKAGE_AMOUNT,
+  DEFAULT_THREE_DAYS_PACKAGE_AMOUNT,
+  DEFAULT_TWO_DAYS_PACKAGE_AMOUNT,
+  DEFAULT_WEEKDAY_PACKAGE_AMOUNT,
+} from "@/lib/fees";
 import { formatCurrency, getMessageParam } from "@/lib/utils";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -68,6 +75,10 @@ export default async function FeeSettingsPage({ searchParams }: { searchParams: 
                 defaultValue={currentSetting?.absence_deduction_amount ?? DEFAULT_ABSENCE_DEDUCTION_AMOUNT}
                 required
               />
+            </div>
+            <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+              Gói 2 ngày/tuần: {formatCurrency(DEFAULT_TWO_DAYS_PACKAGE_AMOUNT)} · 3 ngày/tuần:{" "}
+              {formatCurrency(DEFAULT_THREE_DAYS_PACKAGE_AMOUNT)} · 4 ngày/tuần: {formatCurrency(DEFAULT_FOUR_DAYS_PACKAGE_AMOUNT)}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="currency">Tiền tệ</Label>

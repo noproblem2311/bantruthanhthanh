@@ -25,14 +25,29 @@ const strengths = [
 
 const packages = [
   {
-    title: "Gói bán trú thứ 2 đến thứ 6",
-    note: "Nghỉ thứ 7",
+    title: "Không thứ 7",
+    note: "Gói bán trú trong tuần",
     price: "720.000đ",
   },
   {
-    title: "Gói bán trú thứ 2 đến thứ 7",
+    title: "Có thứ 7",
     note: "Có thứ 7",
     price: "850.000đ",
+  },
+  {
+    title: "2 ngày/tuần",
+    note: "Lịch cố định theo tuần",
+    price: "300.000đ",
+  },
+  {
+    title: "3 ngày/tuần",
+    note: "Lịch cố định theo tuần",
+    price: "400.000đ",
+  },
+  {
+    title: "4 ngày/tuần",
+    note: "Lịch cố định theo tuần",
+    price: "590.000đ",
   },
 ] as const;
 
@@ -96,8 +111,8 @@ export default async function BoardingLandingPage() {
               <p className="text-sm text-emerald-50">Gói có thứ 7</p>
             </div>
             <div className="rounded-md bg-white/15 p-4">
-              <p className="text-2xl font-semibold">Mỗi ngày</p>
-              <p className="text-sm text-emerald-50">Ăn, nghỉ, học và vui chơi</p>
+              <p className="text-2xl font-semibold">300k+</p>
+              <p className="text-sm text-emerald-50">Gói 2/3/4 ngày mỗi tuần</p>
             </div>
           </div>
         </div>
@@ -145,7 +160,7 @@ export default async function BoardingLandingPage() {
           <p className="text-sm font-semibold uppercase tracking-wide text-primary">Gói bán trú</p>
           <h2 className="mt-2 text-3xl font-semibold">Linh hoạt theo nhu cầu của gia đình</h2>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {packages.map((item) => (
             <div key={item.title} className="rounded-lg border bg-white p-6">
               <div className="flex items-start justify-between gap-4">
