@@ -11,3 +11,8 @@ export const ingredientExpenseSchema = z.object({
 export const deleteIngredientExpenseSchema = z.object({
   id: z.string().uuid(),
 });
+
+export const ingredientDayNoteSchema = z.object({
+  expense_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày mua nguyên liệu không hợp lệ"),
+  note: z.string().optional(),
+});

@@ -237,6 +237,7 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
   await requireRole("admin");
   const params = await searchParams;
   const source = params.source === "manual" ? "manual" : params.source === "blank" ? "blank" : "history";
+  const paperSize = params.paper === "a5" ? "a5" : "a4";
   const supabase = await createClient();
   let title = "Phiếu thu";
   let receipts: Receipt[] = [];
@@ -271,12 +272,14 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
   }
 
   return (
-    <main className="receipt-page">
-      <ReceiptPrintToolbar />
+    <main className="receipt-page" data-paper={paperSize}>
+      <ReceiptPrintToolbar paperSize={paperSize} />
       <div className="receipt-wrap">
         <div className="no-print mb-4">
           <h2 className="text-xl font-semibold">{title}</h2>
-          <p className="text-sm text-muted-foreground">{receipts.length} phiếu · 2 phiếu / trang A4</p>
+          <p className="text-sm text-muted-foreground">
+            {receipts.length} phiếu · {paperSize === "a4" ? "2 phiếu / trang A4" : "1 phiếu / trang A5"}
+          </p>
         </div>
         {receipts.length > 0 ? (
           <div className="receipt-sheets">
@@ -291,7 +294,7 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
 
       <style>{`
         @page {
-          size: A4 portrait;
+          size: ${paperSize === "a5" ? "A5" : "A4"} portrait;
           margin: 10mm;
         }
 
@@ -325,6 +328,16 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
         }
 
         .receipt-card:nth-child(2n) {
+          page-break-after: always;
+          break-after: page;
+        }
+
+        .receipt-page[data-paper="a5"] .receipt-wrap {
+          width: min(148mm, calc(100% - 24px));
+        }
+
+        .receipt-page[data-paper="a5"] .receipt-card {
+          min-height: 190mm;
           page-break-after: always;
           break-after: page;
         }
@@ -442,7 +455,7 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
           }
 
           .receipt-card {
-            min-height: 136mm;
+            min-height: ${paperSize === "a5" ? "190mm" : "136mm"};
             box-shadow: none;
           }
         }
