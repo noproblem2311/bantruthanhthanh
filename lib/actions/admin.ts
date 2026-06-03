@@ -255,11 +255,13 @@ export async function resetParentPasswordWithCredentialAction(
 }
 
 export async function createStudentAction(formData: FormData) {
-  await requireRole("admin");
+  const profile = await requireRole(["admin", "manager"]);
   const parsed = studentSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) redirectWithMessage("/admin/students/new", "error", parsed.error.issues[0]?.message || "Dữ liệu học sinh chưa hợp lệ");
+  const newStudentPath = profile.role === "manager" ? "/manager/students/new" : "/admin/students/new";
+  const studentsPath = profile.role === "manager" ? "/manager/students" : "/admin/students";
+  if (!parsed.success) redirectWithMessage(newStudentPath, "error", parsed.error.issues[0]?.message || "Dữ liệu học sinh chưa hợp lệ");
 
-  const supabase = await createClient();
+  const supabase = profile.role === "manager" ? createAdminClient() : await createClient();
   const { data, error } = await supabase
     .from("students")
     .insert({
@@ -280,8 +282,11 @@ export async function createStudentAction(formData: FormData) {
     .select("id")
     .single();
 
-  if (error || !data) redirectWithMessage("/admin/students/new", "error", "Không tạo được học sinh");
-  revalidatePath("/admin/students");
+  if (error || !data) redirectWithMessage(newStudentPath, "error", "Không tạo được học sinh");
+  revalidatePath(studentsPath);
+  if (profile.role === "manager") {
+    redirect(`${studentsPath}?success=${encodeURIComponent("Đã tạo học sinh")}`);
+  }
   redirect(`/admin/students/${data.id}?success=${encodeURIComponent("Đã tạo học sinh")}`);
 }
 

@@ -1,6 +1,9 @@
+import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClientSearch } from "@/components/ui/client-search";
+import { PageMessage } from "@/components/ui/message";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -8,6 +11,7 @@ import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { boardingPackageLabels, boardingPackageOptions } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
 import { formatVietnamDate, getVietnamDateFromTimestamp } from "@/lib/date";
+import { getMessageParam } from "@/lib/utils";
 import type { BoardingPackageType, Parent, Student } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -36,6 +40,17 @@ export default async function ManagerStudentsPage({ searchParams }: { searchPara
 
   return (
     <div className="space-y-5">
+      <PageMessage success={getMessageParam(params, "success")} error={getMessageParam(params, "error")} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-semibold">Học sinh</h2>
+          <p className="text-sm text-muted-foreground">Xem danh sách và thêm học sinh mới.</p>
+        </div>
+        <ButtonLink href="/manager/students/new">
+          <Plus className="h-4 w-4" />
+          Tạo học sinh
+        </ButtonLink>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Bộ lọc học sinh</CardTitle>

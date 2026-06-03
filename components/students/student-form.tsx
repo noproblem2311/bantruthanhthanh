@@ -12,7 +12,7 @@ import { getVietnamDateFromTimestamp } from "@/lib/date";
 import type { Parent, Student } from "@/lib/types";
 import { StudentRequiredFieldsAlert } from "./student-required-fields-alert";
 
-export function StudentForm({ student, parents }: { student?: Student; parents: Parent[] }) {
+export function StudentForm({ student, parents, backHref = "/admin/students" }: { student?: Student; parents: Parent[]; backHref?: string }) {
   const action = student ? updateStudentAction : createStudentAction;
   const formId = student ? `student-form-${student.id}` : "student-form-new";
   const enrollmentDate = student?.enrollment_date || (student?.created_at ? getVietnamDateFromTimestamp(student.created_at) : "");
@@ -106,7 +106,7 @@ export function StudentForm({ student, parents }: { student?: Student; parents: 
           </div>
           <div className="grid gap-2 sm:flex sm:flex-wrap">
             <SubmitButton className="w-full sm:w-auto">{student ? "Lưu học sinh" : "Tạo học sinh"}</SubmitButton>
-            <ButtonLink href="/admin/students" variant="outline" className="w-full sm:w-auto">
+            <ButtonLink href={backHref} variant="outline" className="w-full sm:w-auto">
               Quay lại
             </ButtonLink>
           </div>
