@@ -1,18 +1,14 @@
 import { CreditCard, ReceiptText, Save, UsersRound } from "lucide-react";
-import { Fragment } from "react";
 import { saveMonthlyTuitionRecordsAction } from "@/lib/actions/admin";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageMessage } from "@/components/ui/message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
+import { TuitionStudentRow } from "@/components/tuition/tuition-student-row";
 import { createClient } from "@/lib/supabase/server";
-import { TuitionFeeDebt } from "@/components/tuition/tuition-fee-debt";
-import { formatVietnamDateTime, getMonthBounds, getMonthLabel, getPreviousYearMonth, getYearMonth } from "@/lib/date";
+import { getMonthBounds, getMonthLabel, getPreviousYearMonth, getYearMonth } from "@/lib/date";
 import { getFeeSetting } from "@/lib/fees";
 import { buildStudentTuitionDebtSummaries } from "@/lib/tuition-debt";
 import { isStudentEligibleBeforeDate } from "@/lib/student-attendance";
@@ -62,6 +58,50 @@ function buildActiveRows(students: StudentWithParent[], recordsByStudent: Map<st
   });
 }
 
+function TuitionGroupSection({
+  label,
+  rows,
+  previousMonthLabel,
+  currency,
+  debtSummaries,
+}: {
+  label: string;
+  rows: TuitionPageRow[];
+  previousMonthLabel: string;
+  currency: string;
+  debtSummaries: Awaited<ReturnType<typeof buildStudentTuitionDebtSummaries>>;
+}) {
+  if (rows.length === 0) return null;
+
+  return (
+    <section className="space-y-3">
+      <div className="sticky top-0 z-10 -mx-1 rounded-lg bg-muted/90 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur-sm">
+        {label} ({rows.length})
+      </div>
+      <div className="grid gap-3 xl:grid-cols-2">
+        {rows.map((row) => (
+          <TuitionStudentRow
+            key={row.key}
+            studentId={row.studentId}
+            fullName={row.fullName}
+            studentClassName={row.className}
+            parentName={row.parentName}
+            parentUsername={row.parentUsername}
+            parentPhone={row.parentPhone}
+            isPaid={row.isPaid}
+            receiptSent={row.receiptSent}
+            note={row.note}
+            updatedAt={row.updatedAt}
+            previousMonthLabel={previousMonthLabel}
+            currency={currency}
+            debt={debtSummaries.get(row.studentId)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export async function MonthlyTuitionPage({ searchParams, basePath }: { searchParams: SearchParams; basePath: TuitionBasePath }) {
   const params = await searchParams;
   const billingYearMonth = getMonthParam(params.month);
@@ -107,7 +147,7 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
           <h2 className="text-2xl font-semibold">Nộp học phí</h2>
           <p className="mt-1 text-sm text-muted-foreground">Theo dõi đã nộp/chưa nộp và ghi chú riêng cho từng học sinh theo tháng.</p>
         </div>
-        <form className="grid gap-3 sm:grid-cols-[180px_auto] sm:items-end">
+        <form className="grid w-full gap-3 sm:max-w-sm sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="grid gap-2">
             <Label htmlFor="month">Tháng</Label>
             <Input id="month" name="month" type="month" defaultValue={billingYearMonth} />
@@ -116,7 +156,7 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
         </form>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard title="Tổng học sinh" value={rows.length} icon={UsersRound} />
         <StatCard title="Đã nộp" value={paidCount} icon={CreditCard} />
         <StatCard title="Đã gửi phiếu" value={receiptSentCount} icon={ReceiptText} />
@@ -124,104 +164,44 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="border-b">
           <CardTitle>Danh sách học phí tháng {billingYearMonth}</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <form action={saveMonthlyTuitionRecordsAction}>
+        <CardContent className="p-4 sm:p-5">
+          <form action={saveMonthlyTuitionRecordsAction} className="space-y-6">
             <input type="hidden" name="billing_year_month" value={billingYearMonth} />
             <input type="hidden" name="redirect_to" value={`${basePath}?month=${billingYearMonth}`} />
-            <Table className="min-w-[1280px]">
-              <THead>
-                <tr>
-                  <TH>Học sinh</TH>
-                  <TH>Phụ huynh</TH>
-                  <TH>Học phí & nợ</TH>
-                  <TH>Trạng thái</TH>
-                  <TH>Gửi phiếu</TH>
-                  <TH>Ghi chú</TH>
-                  <TH>Cập nhật</TH>
-                </tr>
-              </THead>
-              <TBody>
-                {[
-                  { label: "Chưa nộp", rows: unpaidRows },
-                  { label: "Đã nộp", rows: paidRows },
-                ].map((group) => (
-                  <Fragment key={group.label}>
-                    <tr key={`${group.label}-header`} className="bg-muted/70">
-                      <TD colSpan={7} className="py-2 text-xs font-semibold uppercase text-muted-foreground">
-                        {group.label} ({group.rows.length})
-                      </TD>
-                    </tr>
-                    {group.rows.map((row) => (
-                      <tr key={row.key}>
-                        <TD>
-                          <input type="hidden" name="student_id" value={row.studentId} />
-                          <p className="font-medium">{row.fullName}</p>
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            <Badge variant="muted">{row.className || "Chưa có lớp"}</Badge>
-                          </div>
-                        </TD>
-                        <TD>
-                          <p className="font-medium">{row.parentName || row.parentUsername || "Chưa cập nhật"}</p>
-                          <p className="text-xs text-muted-foreground">{row.parentPhone || "Chưa có SĐT"}</p>
-                        </TD>
-                        <TD>
-                          {(() => {
-                            const debt = debtSummaries.get(row.studentId);
-                            return (
-                              <TuitionFeeDebt
-                                studentName={row.fullName}
-                                currentMonthFee={debt?.currentMonthFee ?? null}
-                                previousMonthDebt={debt?.previousMonthDebt ?? null}
-                                previousMonthLabel={previousMonthLabel}
-                                unpaidMonths={debt?.unpaidMonths ?? []}
-                                currency={currency}
-                              />
-                            );
-                          })()}
-                        </TD>
-                        <TD>
-                          <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
-                            <input
-                              type="checkbox"
-                              name={`is_paid_${row.studentId}`}
-                              value="paid"
-                              defaultChecked={row.isPaid}
-                              className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-                            />
-                            Đã nộp
-                          </label>
-                        </TD>
-                        <TD>
-                          <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
-                            <input
-                              type="checkbox"
-                              name={`receipt_sent_${row.studentId}`}
-                              value="sent"
-                              defaultChecked={row.receiptSent}
-                              className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-                            />
-                            Đã gửi
-                          </label>
-                        </TD>
-                        <TD>
-                          <Textarea name={`note_${row.studentId}`} defaultValue={row.note} className="min-h-12 resize-y" placeholder="Ghi chú" />
-                        </TD>
-                        <TD className="text-sm text-muted-foreground">{row.updatedAt ? formatVietnamDateTime(row.updatedAt) : "Chưa lưu"}</TD>
-                      </tr>
-                    ))}
-                  </Fragment>
-                ))}
-              </TBody>
-            </Table>
-            {rows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Chưa có học sinh trong tháng này.</div> : null}
-            <div className="flex justify-end border-t p-4">
-              <SubmitButton disabled={editableCount === 0} pendingText="Đang lưu...">
-                <Save className="h-4 w-4" />
-                Lưu thay đổi
-              </SubmitButton>
+
+            {rows.length === 0 ? (
+              <div className="rounded-lg border border-dashed py-12 text-center text-sm text-muted-foreground">
+                Chưa có học sinh trong tháng này.
+              </div>
+            ) : (
+              <>
+                <TuitionGroupSection
+                  label="Chưa nộp"
+                  rows={unpaidRows}
+                  previousMonthLabel={previousMonthLabel}
+                  currency={currency}
+                  debtSummaries={debtSummaries}
+                />
+                <TuitionGroupSection
+                  label="Đã nộp"
+                  rows={paidRows}
+                  previousMonthLabel={previousMonthLabel}
+                  currency={currency}
+                  debtSummaries={debtSummaries}
+                />
+              </>
+            )}
+
+            <div className="sticky bottom-0 -mx-4 border-t bg-white/95 px-4 py-3 backdrop-blur-sm sm:-mx-5 sm:px-5">
+              <div className="flex justify-stretch sm:justify-end">
+                <SubmitButton disabled={editableCount === 0} pendingText="Đang lưu..." className="w-full sm:w-auto">
+                  <Save className="h-4 w-4" />
+                  Lưu thay đổi
+                </SubmitButton>
+              </div>
             </div>
           </form>
         </CardContent>
