@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { BookOpen } from "lucide-react";
 import { AttendanceCalendar, type AttendanceCalendarRecord, type AttendanceCalendarOffRequest } from "@/components/attendance/attendance-calendar";
 import { AttendanceFilterCard } from "@/components/attendance/attendance-filter-card";
 import { AttendanceTable, type AttendanceStudent } from "@/components/attendance/attendance-table";
@@ -57,9 +59,20 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
   const redirectTo = buildRedirectTo(date, status);
   const searchTargetId = "admin-attendance-results";
 
+  const registerMonth = date.slice(0, 7);
+
   return (
     <div className="space-y-5">
       <PageMessage success={getMessageParam(params, "success")} error={errorMessage} />
+      <div className="flex justify-end">
+        <Link
+          href={`/admin/attendance/register?month=${registerMonth}`}
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border bg-white px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-muted/60"
+        >
+          <BookOpen className="h-4 w-4" />
+          Sổ điểm danh tháng
+        </Link>
+      </div>
       <AttendanceCalendar
         selectedDate={date}
         basePath="/admin/attendance"
