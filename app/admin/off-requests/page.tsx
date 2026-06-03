@@ -1,6 +1,7 @@
 import { updateOffRequestStatusAction } from "@/lib/actions/admin";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ClientListFilters } from "@/components/ui/client-list-filters";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageMessage } from "@/components/ui/message";
@@ -15,26 +16,22 @@ import { getMessageParam } from "@/lib/utils";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-function pathWith(date: string, status: string) {
+function pathWith(date: string) {
   const params = new URLSearchParams();
   params.set("date", date);
-  if (status !== "all") params.set("status", status);
   return `/admin/off-requests?${params.toString()}`;
 }
 
 export default async function AdminOffRequestsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const date = typeof params.date === "string" ? params.date : getVietnamToday();
-  const status = typeof params.status === "string" ? params.status : "all";
   const supabase = await createClient();
-  let query = supabase
+  const { data: requests } = await supabase
     .from("off_requests")
     .select("*, students(full_name,class_name), parents(full_name,username,phone)")
     .eq("off_date", date)
     .order("submitted_at", { ascending: false });
-  if (status !== "all") query = query.eq("status", status);
-  const { data: requests } = await query;
-  const redirectTo = pathWith(date, status);
+  const redirectTo = pathWith(date);
 
   return (
     <div className="space-y-5">
@@ -44,28 +41,38 @@ export default async function AdminOffRequestsPage({ searchParams }: { searchPar
           <CardTitle>Lọc đơn xin nghỉ</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-3 md:grid-cols-[180px_220px_auto] md:items-end">
+          <div className="grid gap-3 md:grid-cols-[180px_1fr] md:items-start">
+          <form>
             <div className="grid gap-2">
               <Label htmlFor="date">Ngày</Label>
               <Input id="date" name="date" type="date" defaultValue={date} />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="status">Trạng thái</Label>
-              <Select id="status" name="status" defaultValue={status}>
-                <option value="all">Tất cả</option>
-                <option value="auto_approved">Tự duyệt</option>
-                <option value="pending">Chờ xử lý</option>
-                <option value="approved">Đã duyệt</option>
-                <option value="rejected">Từ chối</option>
-                <option value="cancelled">Đã hủy</option>
-              </Select>
-            </div>
-            <SubmitButton pendingText="Đang lọc...">Lọc</SubmitButton>
           </form>
+          <ClientListFilters
+            targetId="admin-off-requests-results"
+            searchPlaceholder="Học sinh, phụ huynh, SĐT"
+            countLabel="đơn"
+            className="md:grid-cols-[1fr_220px]"
+            filters={[
+              {
+                key: "status",
+                label: "Trạng thái",
+                options: [
+                  { value: "all", label: "Tất cả" },
+                  { value: "auto_approved", label: "Tự duyệt" },
+                  { value: "pending", label: "Chờ xử lý" },
+                  { value: "approved", label: "Đã duyệt" },
+                  { value: "rejected", label: "Từ chối" },
+                  { value: "cancelled", label: "Đã hủy" },
+                ],
+              },
+            ]}
+          />
+          </div>
         </CardContent>
       </Card>
       <Card>
-        <CardContent className="p-0">
+        <CardContent id="admin-off-requests-results" className="p-0">
           <Table>
             <THead>
               <tr>
@@ -78,7 +85,12 @@ export default async function AdminOffRequestsPage({ searchParams }: { searchPar
             </THead>
             <TBody>
               {(requests || []).map((request) => (
-                <tr key={request.id}>
+                <tr
+                  key={request.id}
+                  data-search-key={request.id}
+                  data-search-text={`${request.students?.full_name || ""} ${request.students?.class_name || ""} ${request.parents?.full_name || ""} ${request.parents?.username || ""} ${request.parents?.phone || ""}`}
+                  data-filter-status={request.status}
+                >
                   <TD>
                     <p>{formatVietnamDate(request.off_date)}</p>
                     <p className="text-xs text-muted-foreground">{formatVietnamDateTime(request.submitted_at)}</p>

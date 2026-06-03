@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ClientListFilters } from "@/components/ui/client-list-filters";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { formatVietnamDate, formatVietnamDateTime, getVietnamToday } from "@/lib/date";
@@ -26,13 +26,35 @@ export default async function ManagerOffRequestsPage({ searchParams }: { searchP
         <CardTitle>Đơn xin nghỉ trong ngày</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form className="grid max-w-xs gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-          <div className="grid flex-1 gap-2">
+        <div className="grid gap-3 md:grid-cols-[180px_1fr] md:items-start">
+        <form>
+          <div className="grid gap-2">
             <Label htmlFor="date">Ngày</Label>
             <Input id="date" name="date" type="date" defaultValue={date} />
           </div>
-          <SubmitButton pendingText="Đang xem...">Xem</SubmitButton>
         </form>
+        <ClientListFilters
+          targetId="manager-off-requests-results"
+          searchPlaceholder="Học sinh, phụ huynh, SĐT"
+          countLabel="đơn"
+          className="md:grid-cols-[1fr_220px]"
+          filters={[
+            {
+              key: "status",
+              label: "Trạng thái",
+              options: [
+                { value: "all", label: "Tất cả" },
+                { value: "auto_approved", label: "Tự duyệt" },
+                { value: "pending", label: "Chờ xử lý" },
+                { value: "approved", label: "Đã duyệt" },
+                { value: "rejected", label: "Từ chối" },
+                { value: "cancelled", label: "Đã hủy" },
+              ],
+            },
+          ]}
+        />
+        </div>
+        <div id="manager-off-requests-results">
         <Table>
           <THead>
             <tr>
@@ -45,7 +67,12 @@ export default async function ManagerOffRequestsPage({ searchParams }: { searchP
           </THead>
           <TBody>
             {(requests || []).map((request) => (
-              <tr key={request.id}>
+              <tr
+                key={request.id}
+                data-search-key={request.id}
+                data-search-text={`${request.students?.full_name || ""} ${request.students?.class_name || ""} ${request.parents?.full_name || ""} ${request.parents?.username || ""} ${request.parents?.phone || ""}`}
+                data-filter-status={request.status}
+              >
                 <TD>
                   <p>{formatVietnamDate(request.off_date)}</p>
                   <p className="text-xs text-muted-foreground">{formatVietnamDateTime(request.submitted_at)}</p>
@@ -66,6 +93,7 @@ export default async function ManagerOffRequestsPage({ searchParams }: { searchP
             ))}
           </TBody>
         </Table>
+        </div>
         {(requests || []).length === 0 ? <p className="text-sm text-muted-foreground">Không có đơn xin nghỉ trong ngày này.</p> : null}
       </CardContent>
     </Card>

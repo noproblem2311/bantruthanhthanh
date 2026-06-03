@@ -232,6 +232,7 @@ export function AttendanceTable({
                       className="rounded-lg border bg-white p-3"
                       data-search-key={student.id}
                       data-search-text={`${student.full_name} ${student.class_name || ""} ${student.parents?.full_name || ""} ${student.parents?.username || ""} ${student.parents?.phone || ""}`}
+                      data-filter-status={status}
                     >
                       <input type="hidden" name="student_id" value={student.id} />
                       <div className="space-y-2">
@@ -312,6 +313,7 @@ export function AttendanceTable({
                         className="bg-white"
                         data-search-key={student.id}
                         data-search-text={`${student.full_name} ${student.class_name || ""} ${student.parents?.full_name || ""} ${student.parents?.username || ""} ${student.parents?.phone || ""}`}
+                        data-filter-status={status}
                       >
                         <TD>
                           <div className="space-y-1">

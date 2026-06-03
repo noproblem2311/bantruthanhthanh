@@ -2,11 +2,8 @@ import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClientSearch } from "@/components/ui/client-search";
+import { ClientListFilters } from "@/components/ui/client-list-filters";
 import { PageMessage } from "@/components/ui/message";
-import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
-import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { boardingPackageLabels, boardingPackageOptions } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
@@ -19,8 +16,6 @@ type StudentRow = Student & { parents: Pick<Parent, "full_name" | "username" | "
 
 export default async function ManagerStudentsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const className = typeof params.class === "string" ? params.class : "all";
-  const packageType = typeof params.package === "string" ? params.package : "all";
   const supabase = await createClient();
   const { data: students } = await supabase
     .from("students")
@@ -31,12 +26,6 @@ export default async function ManagerStudentsPage({ searchParams }: { searchPara
   const classOptions = Array.from(new Set(studentRows.map((student) => student.class_name).filter(Boolean) as string[])).sort((a, b) =>
     a.localeCompare(b, "vi"),
   );
-  const filtered = studentRows.filter((student) => {
-    return (
-      (className === "all" || student.class_name === className) &&
-      (packageType === "all" || student.boarding_package_type === packageType)
-    );
-  });
 
   return (
     <div className="space-y-5">
@@ -56,34 +45,24 @@ export default async function ManagerStudentsPage({ searchParams }: { searchPara
           <CardTitle>Bộ lọc học sinh</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 lg:grid-cols-[1fr_160px_180px_auto] lg:items-end">
-            <ClientSearch targetId="manager-students-results" placeholder="Tên, lớp, phụ huynh, SĐT" countLabel="học sinh" />
-            <form className="contents">
-            <div className="grid gap-2">
-              <Label htmlFor="class">Lớp</Label>
-              <Select id="class" name="class" defaultValue={className}>
-                <option value="all">Tất cả</option>
-                {classOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="package">Gói bán trú</Label>
-              <Select id="package" name="package" defaultValue={packageType}>
-                <option value="all">Tất cả</option>
-                {boardingPackageOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <SubmitButton pendingText="Đang lọc...">Lọc</SubmitButton>
-            </form>
-          </div>
+          <ClientListFilters
+            targetId="manager-students-results"
+            searchPlaceholder="Tên, lớp, phụ huynh, SĐT"
+            countLabel="học sinh"
+            className="lg:grid-cols-[1fr_160px_180px] lg:items-start"
+            filters={[
+              {
+                key: "class",
+                label: "Lớp",
+                options: [{ value: "all", label: "Tất cả" }, ...classOptions.map((option) => ({ value: option, label: option }))],
+              },
+              {
+                key: "package",
+                label: "Gói bán trú",
+                options: [{ value: "all", label: "Tất cả" }, ...boardingPackageOptions],
+              },
+            ]}
+          />
         </CardContent>
       </Card>
       <Card>
@@ -103,11 +82,13 @@ export default async function ManagerStudentsPage({ searchParams }: { searchPara
               </tr>
             </THead>
             <TBody>
-              {filtered.map((student) => (
+              {studentRows.map((student) => (
                 <tr
                   key={student.id}
                   data-search-key={student.id}
                   data-search-text={`${student.full_name} ${student.class_name || ""} ${student.school_name || ""} ${student.parents?.full_name || ""} ${student.parents?.username || ""} ${student.parents?.phone || ""}`}
+                  data-filter-class={student.class_name || ""}
+                  data-filter-package={student.boarding_package_type || "weekday"}
                 >
                   <TD>
                     <p className="font-medium">{student.full_name}</p>
@@ -132,7 +113,7 @@ export default async function ManagerStudentsPage({ searchParams }: { searchPara
               ))}
             </TBody>
           </Table>
-          {filtered.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Không có học sinh phù hợp.</div> : null}
+          {studentRows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Không có học sinh phù hợp.</div> : null}
         </CardContent>
       </Card>
     </div>

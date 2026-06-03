@@ -8,21 +8,19 @@ import { createClient } from "@/lib/supabase/server";
 import { getDateOrVietnamToday, getMonthBounds } from "@/lib/date";
 import { isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
 import { getMessageParam } from "@/lib/utils";
-import type { AttendanceRecord, AttendanceStatus } from "@/lib/types";
+import type { AttendanceRecord } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-function buildRedirectTo(date: string, status: string) {
+function buildRedirectTo(date: string) {
   const params = new URLSearchParams();
   params.set("date", date);
-  if (status && status !== "all") params.set("status", status);
   return `/admin/attendance?${params.toString()}`;
 }
 
 export default async function AdminAttendancePage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const date = getDateOrVietnamToday(params.date);
-  const status = typeof params.status === "string" ? params.status : "all";
   const errorMessage = getMessageParam(params, "error");
   const monthBounds = getMonthBounds(date.slice(0, 7));
   const supabase = await createClient();
@@ -46,17 +44,12 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
   const eligibleStudentIds = eligibleStudents.map((student) => student.id);
   const eligibleStudentIdSet = new Set(eligibleStudentIds);
   const activeRecords = currentRecords.filter((record) => eligibleStudentIdSet.has(record.student_id));
-  const recordMap = new Map(activeRecords.map((record) => [record.student_id, record]));
   const approvedOffStudentIds = new Set(
     (offRequests || [])
       .filter((request: { student_id: string }) => eligibleStudentIdSet.has(request.student_id))
       .map((request: { student_id: string }) => request.student_id),
   );
-  const filtered = eligibleStudents.filter((student) => {
-    const currentStatus = (recordMap.get(student.id)?.status || "not_marked") as AttendanceStatus;
-    return status === "all" || currentStatus === status;
-  });
-  const redirectTo = buildRedirectTo(date, status);
+  const redirectTo = buildRedirectTo(date);
   const searchTargetId = "admin-attendance-results";
 
   const registerMonth = date.slice(0, 7);
@@ -80,18 +73,18 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
         records={(monthRecords || []) as AttendanceCalendarRecord[]}
         approvedOffRequests={(monthOffRequests || []) as AttendanceCalendarOffRequest[]}
         q=""
-        status={status}
+        status="all"
       />
-      <AttendanceFilterCard date={date} status={status} searchTargetId={searchTargetId} />
+      <AttendanceFilterCard date={date} searchTargetId={searchTargetId} />
       <AttendanceTable
         title="Admin điểm danh"
         date={date}
-        students={filtered}
+        students={eligibleStudents}
         records={activeRecords}
         approvedOffStudentIds={approvedOffStudentIds}
         redirectTo={redirectTo}
         searchTargetId={searchTargetId}
-        groupMarkedStudents={status === "all"}
+        groupMarkedStudents
       />
     </div>
   );

@@ -2,9 +2,8 @@ import { rejectPasswordResetRequestAction } from "@/lib/actions/admin";
 import { ResetPasswordForm } from "@/components/parents/reset-password-form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { ClientListFilters } from "@/components/ui/client-list-filters";
 import { PageMessage } from "@/components/ui/message";
-import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,14 +16,11 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function PasswordResetRequestsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const status = typeof params.status === "string" ? params.status : "pending";
   const supabase = await createClient();
-  let query = supabase
+  const { data: requests } = await supabase
     .from("password_reset_requests")
     .select("*, parents(id,full_name,username,phone)")
     .order("requested_at", { ascending: false });
-  if (status !== "all") query = query.eq("status", status);
-  const { data: requests } = await query;
 
   return (
     <div className="space-y-5">
@@ -34,22 +30,28 @@ export default async function PasswordResetRequestsPage({ searchParams }: { sear
           <CardTitle>Yêu cầu cấp lại mật khẩu</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="grid max-w-xs gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-            <div className="grid flex-1 gap-2">
-              <Label htmlFor="status">Trạng thái</Label>
-              <Select id="status" name="status" defaultValue={status}>
-                <option value="pending">Chờ xử lý</option>
-                <option value="resolved">Đã xử lý</option>
-                <option value="rejected">Từ chối</option>
-                <option value="all">Tất cả</option>
-              </Select>
-            </div>
-            <SubmitButton pendingText="Đang lọc...">Lọc</SubmitButton>
-          </form>
+          <ClientListFilters
+            targetId="password-reset-requests-results"
+            searchPlaceholder="Username, phụ huynh, SĐT"
+            countLabel="yêu cầu"
+            className="max-w-2xl sm:grid-cols-[1fr_220px]"
+            filters={[
+              {
+                key: "status",
+                label: "Trạng thái",
+                options: [
+                  { value: "all", label: "Tất cả" },
+                  { value: "pending", label: "Chờ xử lý" },
+                  { value: "resolved", label: "Đã xử lý" },
+                  { value: "rejected", label: "Từ chối" },
+                ],
+              },
+            ]}
+          />
         </CardContent>
       </Card>
       <Card>
-        <CardContent className="p-0">
+        <CardContent id="password-reset-requests-results" className="p-0">
           <Table>
             <THead>
               <tr>
@@ -61,7 +63,12 @@ export default async function PasswordResetRequestsPage({ searchParams }: { sear
             </THead>
             <TBody>
               {(requests || []).map((request) => (
-                <tr key={request.id}>
+                <tr
+                  key={request.id}
+                  data-search-key={request.id}
+                  data-search-text={`${request.username || ""} ${request.note || ""} ${request.phone || ""} ${request.parents?.full_name || ""} ${request.parents?.username || ""} ${request.parents?.phone || ""}`}
+                  data-filter-status={request.status}
+                >
                   <TD>
                     <p className="font-medium">{request.username}</p>
                     <p className="text-xs text-muted-foreground">{formatVietnamDateTime(request.requested_at)}</p>
