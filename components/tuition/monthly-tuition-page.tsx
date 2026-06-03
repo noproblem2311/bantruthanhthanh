@@ -11,7 +11,10 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/server";
-import { formatVietnamDateTime, getMonthBounds, getYearMonth } from "@/lib/date";
+import { TuitionFeeDebt } from "@/components/tuition/tuition-fee-debt";
+import { formatVietnamDateTime, getMonthBounds, getMonthLabel, getPreviousYearMonth, getYearMonth } from "@/lib/date";
+import { getFeeSetting } from "@/lib/fees";
+import { buildStudentTuitionDebtSummaries } from "@/lib/tuition-debt";
 import { isStudentEligibleBeforeDate } from "@/lib/student-attendance";
 import { getMessageParam } from "@/lib/utils";
 import type { MonthlyTuitionRecord, Parent, Student } from "@/lib/types";
@@ -62,10 +65,12 @@ function buildActiveRows(students: StudentWithParent[], recordsByStudent: Map<st
 export async function MonthlyTuitionPage({ searchParams, basePath }: { searchParams: SearchParams; basePath: TuitionBasePath }) {
   const params = await searchParams;
   const billingYearMonth = getMonthParam(params.month);
+  const previousYearMonth = getPreviousYearMonth(billingYearMonth);
+  const previousMonthLabel = getMonthLabel(previousYearMonth);
   const { start, end } = getMonthBounds(billingYearMonth);
   const supabase = await createClient();
 
-  const [{ data: students }, { data: tuitionRecords }, { data: attendanceRecords }] = await Promise.all([
+  const [{ data: students }, { data: tuitionRecords }, { data: attendanceRecords }, feeSetting] = await Promise.all([
     supabase
       .from("students")
       .select("*, parents(id,full_name,username,phone)")
@@ -73,15 +78,18 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
       .order("full_name"),
     supabase.from("monthly_tuition_records").select("*").eq("billing_year_month", billingYearMonth).order("updated_at", { ascending: false }),
     supabase.from("attendance_records").select("student_id").gte("attendance_date", start).lt("attendance_date", end),
+    getFeeSetting(supabase, billingYearMonth),
   ]);
 
   const records = (tuitionRecords || []) as MonthlyTuitionRecord[];
   const recordsByStudent = new Map(records.map((record) => [record.student_id, record]));
   const attendanceStudentIds = new Set((attendanceRecords || []).map((record: { student_id: string }) => record.student_id));
-  const rows = buildActiveRows(
-    ((students || []) as StudentWithParent[]).filter((student) => isStudentEligibleBeforeDate(student, end) || attendanceStudentIds.has(student.id)),
-    recordsByStudent,
+  const eligibleStudents = ((students || []) as StudentWithParent[]).filter(
+    (student) => isStudentEligibleBeforeDate(student, end) || attendanceStudentIds.has(student.id),
   );
+  const debtSummaries = await buildStudentTuitionDebtSummaries(supabase, eligibleStudents, billingYearMonth);
+  const rows = buildActiveRows(eligibleStudents, recordsByStudent);
+  const currency = feeSetting?.currency || "VND";
   const unpaidRows = rows.filter((row) => !row.isPaid);
   const paidRows = rows.filter((row) => row.isPaid);
 
@@ -123,11 +131,12 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
           <form action={saveMonthlyTuitionRecordsAction}>
             <input type="hidden" name="billing_year_month" value={billingYearMonth} />
             <input type="hidden" name="redirect_to" value={`${basePath}?month=${billingYearMonth}`} />
-            <Table className="min-w-[1040px]">
+            <Table className="min-w-[1280px]">
               <THead>
                 <tr>
                   <TH>Học sinh</TH>
                   <TH>Phụ huynh</TH>
+                  <TH>Học phí & nợ</TH>
                   <TH>Trạng thái</TH>
                   <TH>Gửi phiếu</TH>
                   <TH>Ghi chú</TH>
@@ -141,7 +150,7 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
                 ].map((group) => (
                   <Fragment key={group.label}>
                     <tr key={`${group.label}-header`} className="bg-muted/70">
-                      <TD colSpan={6} className="py-2 text-xs font-semibold uppercase text-muted-foreground">
+                      <TD colSpan={7} className="py-2 text-xs font-semibold uppercase text-muted-foreground">
                         {group.label} ({group.rows.length})
                       </TD>
                     </tr>
@@ -157,6 +166,21 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
                         <TD>
                           <p className="font-medium">{row.parentName || row.parentUsername || "Chưa cập nhật"}</p>
                           <p className="text-xs text-muted-foreground">{row.parentPhone || "Chưa có SĐT"}</p>
+                        </TD>
+                        <TD>
+                          {(() => {
+                            const debt = debtSummaries.get(row.studentId);
+                            return (
+                              <TuitionFeeDebt
+                                studentName={row.fullName}
+                                currentMonthFee={debt?.currentMonthFee ?? null}
+                                previousMonthDebt={debt?.previousMonthDebt ?? null}
+                                previousMonthLabel={previousMonthLabel}
+                                unpaidMonths={debt?.unpaidMonths ?? []}
+                                currency={currency}
+                              />
+                            );
+                          })()}
                         </TD>
                         <TD>
                           <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm">

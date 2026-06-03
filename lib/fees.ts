@@ -47,18 +47,77 @@ export async function getFeeSetting(supabase: SupabaseLike, yearMonth: string) {
 }
 
 export async function calculateMonthlyFee(supabase: SupabaseLike, student: Student, yearMonth: string) {
-  const previousYearMonth = getPreviousYearMonth(yearMonth);
-  const { start, end } = getMonthBounds(previousYearMonth);
-  const feeSetting = await getFeeSetting(supabase, yearMonth);
-  const { data } = await supabase
-    .from("attendance_records")
-    .select("*")
-    .eq("student_id", student.id)
-    .gte("attendance_date", start)
-    .lt("attendance_date", end)
-    .order("attendance_date", { ascending: true });
+  const feesByMonth = await calculateMonthlyFeesForStudentsByMonths(supabase, [student], [yearMonth]);
+  return feesByMonth.get(student.id)?.get(yearMonth) ?? buildStudentMonthlyFee(student, [], null);
+}
 
-  return buildStudentMonthlyFee(student, (data || []) as AttendanceRecord[], feeSetting);
+export async function calculateMonthlyFeesForStudents(supabase: SupabaseLike, students: Student[], yearMonth: string) {
+  const feesByMonth = await calculateMonthlyFeesForStudentsByMonths(supabase, students, [yearMonth]);
+  const result = new Map<string, StudentMonthlyFee>();
+  for (const student of students) {
+    result.set(student.id, feesByMonth.get(student.id)?.get(yearMonth) ?? buildStudentMonthlyFee(student, [], null));
+  }
+  return result;
+}
+
+export async function calculateMonthlyFeesForStudentsByMonths(
+  supabase: SupabaseLike,
+  students: Student[],
+  yearMonths: string[],
+) {
+  const uniqueMonths = [...new Set(yearMonths)];
+  const result = new Map<string, Map<string, StudentMonthlyFee>>();
+  for (const student of students) {
+    result.set(student.id, new Map());
+  }
+
+  if (students.length === 0 || uniqueMonths.length === 0) {
+    return result;
+  }
+
+  const studentIds = students.map((student) => student.id);
+  let rangeStart = getMonthBounds(getPreviousYearMonth(uniqueMonths[0])).start;
+  let rangeEnd = getMonthBounds(getPreviousYearMonth(uniqueMonths[0])).end;
+
+  for (const yearMonth of uniqueMonths) {
+    const { start, end } = getMonthBounds(getPreviousYearMonth(yearMonth));
+    if (start < rangeStart) rangeStart = start;
+    if (end > rangeEnd) rangeEnd = end;
+  }
+
+  const [{ data: attendance }, ...feeSettings] = await Promise.all([
+    supabase
+      .from("attendance_records")
+      .select("*")
+      .gte("attendance_date", rangeStart)
+      .lt("attendance_date", rangeEnd)
+      .in("student_id", studentIds)
+      .order("attendance_date", { ascending: true }),
+    ...uniqueMonths.map((yearMonth) => getFeeSetting(supabase, yearMonth)),
+  ]);
+
+  const feeSettingByMonth = new Map(uniqueMonths.map((yearMonth, index) => [yearMonth, feeSettings[index]]));
+  const attendanceByStudent = new Map<string, AttendanceRecord[]>();
+
+  for (const record of (attendance || []) as AttendanceRecord[]) {
+    const list = attendanceByStudent.get(record.student_id) || [];
+    list.push(record);
+    attendanceByStudent.set(record.student_id, list);
+  }
+
+  for (const yearMonth of uniqueMonths) {
+    const { start, end } = getMonthBounds(getPreviousYearMonth(yearMonth));
+    const feeSetting = feeSettingByMonth.get(yearMonth) ?? null;
+
+    for (const student of students) {
+      const studentRecords = (attendanceByStudent.get(student.id) || []).filter(
+        (record) => record.attendance_date >= start && record.attendance_date < end,
+      );
+      result.get(student.id)!.set(yearMonth, buildStudentMonthlyFee(student, studentRecords, feeSetting));
+    }
+  }
+
+  return result;
 }
 
 export function buildStudentMonthlyFee(student: Student, records: AttendanceRecord[], feeSetting: FeeSetting | null): StudentMonthlyFee {
