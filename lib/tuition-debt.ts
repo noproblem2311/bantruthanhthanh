@@ -1,10 +1,16 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getMonthLabel, getPreviousYearMonth } from "@/lib/date";
+import { getMonthBounds, getMonthLabel, getPreviousYearMonth } from "@/lib/date";
 import { calculateMonthlyFeesForStudents, calculateMonthlyFeesForStudentsByMonths } from "@/lib/fees";
+import { getStudentAttendanceStartDate } from "@/lib/student-attendance";
 import type { MonthlyTuitionRecord, Student } from "@/lib/types";
 
 type SupabaseLike = SupabaseClient;
+
+/** Tháng 6/2026: nợ tháng 5 = số buổi có mặt tháng 5 × 36.000đ */
+const JUNE_2026_BILLING_MONTH = "2026-06";
+const MAY_2026_DEBT_MONTH = "2026-05";
+const MAY_DEBT_PER_PRESENT_DAY = 36000;
 
 export type UnpaidTuitionMonth = {
   billingYearMonth: string;
@@ -68,6 +74,45 @@ async function getBillingAmountsByStudentMonth(
   return amounts;
 }
 
+async function getPresentDayCountsInMonth(supabase: SupabaseLike, students: Student[], yearMonth: string) {
+  const counts = new Map<string, number>();
+  for (const student of students) {
+    counts.set(student.id, 0);
+  }
+
+  if (students.length === 0) {
+    return counts;
+  }
+
+  const { start, end } = getMonthBounds(yearMonth);
+  const { data: attendance } = await supabase
+    .from("attendance_records")
+    .select("student_id, attendance_date, status")
+    .in(
+      "student_id",
+      students.map((student) => student.id),
+    )
+    .gte("attendance_date", start)
+    .lt("attendance_date", end)
+    .eq("status", "present");
+
+  const studentsById = new Map(students.map((student) => [student.id, student]));
+
+  for (const record of attendance || []) {
+    const student = studentsById.get(record.student_id);
+    if (!student || record.attendance_date < getStudentAttendanceStartDate(student)) {
+      continue;
+    }
+    counts.set(record.student_id, (counts.get(record.student_id) || 0) + 1);
+  }
+
+  return counts;
+}
+
+function getMayDebtByPresentDays(presentDays: number) {
+  return presentDays * MAY_DEBT_PER_PRESENT_DAY;
+}
+
 export async function buildStudentTuitionDebtSummaries(
   supabase: SupabaseLike,
   students: Student[],
@@ -88,9 +133,12 @@ export async function buildStudentTuitionDebtSummaries(
     .eq("is_paid", false);
 
   const unpaidMonths = [...new Set(((unpaidRecords || []) as MonthlyTuitionRecord[]).map((record) => record.billing_year_month))];
-  const [currentFees, amountsByStudentMonth] = await Promise.all([
+  const useMayPresentDayDebt = billingYearMonth === JUNE_2026_BILLING_MONTH;
+
+  const [currentFees, amountsByStudentMonth, mayPresentDayCounts] = await Promise.all([
     calculateMonthlyFeesForStudents(supabase, students, billingYearMonth),
     getBillingAmountsByStudentMonth(supabase, students, unpaidMonths),
+    useMayPresentDayDebt ? getPresentDayCountsInMonth(supabase, students, MAY_2026_DEBT_MONTH) : Promise.resolve(null),
   ]);
 
   for (const student of students) {
@@ -99,14 +147,24 @@ export async function buildStudentTuitionDebtSummaries(
       .map((record) => record.billing_year_month)
       .sort((left, right) => right.localeCompare(left));
 
+    const mayPresentDays = mayPresentDayCounts?.get(student.id) ?? 0;
+    const mayDebtFromAttendance = getMayDebtByPresentDays(mayPresentDays);
+
     const unpaidMonths: UnpaidTuitionMonth[] = unpaidMonthsForStudent.map((month) => ({
       billingYearMonth: month,
       label: getMonthLabel(month),
-      amount: amountsByStudentMonth.get(amountKey(student.id, month)) ?? null,
+      amount:
+        useMayPresentDayDebt && month === MAY_2026_DEBT_MONTH
+          ? mayDebtFromAttendance
+          : (amountsByStudentMonth.get(amountKey(student.id, month)) ?? null),
     }));
 
     const previousMonthAmount = amountsByStudentMonth.get(amountKey(student.id, previousMonth)) ?? null;
-    const previousMonthDebt = unpaidMonthsForStudent.includes(previousMonth) ? previousMonthAmount : 0;
+    const previousMonthDebt = unpaidMonthsForStudent.includes(previousMonth)
+      ? useMayPresentDayDebt && previousMonth === MAY_2026_DEBT_MONTH
+        ? mayDebtFromAttendance
+        : previousMonthAmount
+      : 0;
 
     summaries.set(student.id, {
       currentMonthFee: currentFees.get(student.id)?.total_amount ?? null,
