@@ -10,7 +10,6 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { createClient } from "@/lib/supabase/server";
 import { buildAttendanceStatusMap, getMonthDateRange, getMonthDayDates } from "@/lib/attendance-grid";
 import { getYearMonth } from "@/lib/date";
-import { isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
 import { getMessageParam } from "@/lib/utils";
 import type { AttendanceRecord, Student } from "@/lib/types";
 
@@ -55,10 +54,6 @@ export async function MonthlyAttendanceRegisterPage({
     const statusesByDate: Record<string, AttendanceRecord["status"] | undefined> = {};
 
     for (const date of dayDates) {
-      if (!isStudentEligibleForAttendanceDate(student, date)) {
-        statusesByDate[date] = undefined;
-        continue;
-      }
       statusesByDate[date] = studentStatuses?.get(date) || "not_marked";
     }
 

@@ -303,8 +303,8 @@ export async function saveMonthlyAttendanceRegisterAction(formData: FormData) {
   const now = new Date().toISOString();
   const rows = parsedCells.map((cell) => {
     const student = studentsById.get(cell.studentId);
-    if (!student || !isStudentEligibleForAttendanceDate(student, cell.date)) {
-      redirectWithMessage(path, "error", "Có học sinh chưa hợp lệ cho ngày điểm danh");
+    if (!student) {
+      redirectWithMessage(path, "error", "Có học sinh không hợp lệ trong sổ điểm danh");
     }
 
     return {
