@@ -1,12 +1,7 @@
 import Link from "next/link";
-import { forgotPasswordAction } from "@/lib/auth/actions";
 import { getMessageParam } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { PageMessage } from "@/components/ui/message";
-import { SubmitButton } from "@/components/ui/submit-button";
-import { Textarea } from "@/components/ui/textarea";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -19,28 +14,13 @@ export default async function ForgotPasswordPage({ searchParams }: { searchParam
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Yêu cầu cấp lại mật khẩu</CardTitle>
-            <CardDescription>Phụ huynh gửi username và số điện thoại nếu có. Admin sẽ xác nhận thủ công.</CardDescription>
+            <CardDescription>Cổng phụ huynh đang tạm tắt, nên chức năng cấp lại mật khẩu phụ huynh cũng tạm dừng.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="mb-4">
               <PageMessage success={getMessageParam(params, "success")} error={getMessageParam(params, "error")} />
             </div>
-            <form action={forgotPasswordAction} className="grid gap-4">
-              <input type="hidden" name="redirect_to" value="/forgot-password" />
-              <div className="grid gap-2">
-                <Label htmlFor="username">Username</Label>
-                <Input id="username" name="username" required />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="phone">Số điện thoại</Label>
-                <Input id="phone" name="phone" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="note">Ghi chú</Label>
-                <Textarea id="note" name="note" placeholder="Ví dụ: Tôi là phụ huynh của bé Minh..." />
-              </div>
-              <SubmitButton className="w-full">Gửi yêu cầu</SubmitButton>
-            </form>
+            <p className="text-sm text-muted-foreground">Vui lòng liên hệ quản trị viên nếu cần hỗ trợ tài khoản.</p>
             <Link href="/login" className="mt-4 inline-block text-sm font-medium text-primary">
               Quay lại đăng nhập
             </Link>

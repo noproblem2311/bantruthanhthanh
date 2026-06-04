@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { forgotPasswordSchema, parentLoginSchema, staffLoginSchema } from "@/lib/validators/auth";
+import { forgotPasswordSchema, staffLoginSchema } from "@/lib/validators/auth";
 import { normalizeUsername } from "@/lib/utils";
 import { roleDashboard } from "@/lib/permissions";
 import { redirectWithMessage } from "./messages";
@@ -16,39 +16,7 @@ function formPath(formData: FormData, fallback: string) {
 
 export async function loginParentAction(formData: FormData) {
   const path = formPath(formData, "/login?mode=parent");
-  const parsed = parentLoginSchema.safeParse({
-    username: formData.get("username"),
-    password: formData.get("password"),
-  });
-
-  if (!parsed.success) {
-    redirectWithMessage(path, "error", parsed.error.issues[0]?.message || "Thông tin đăng nhập không hợp lệ");
-  }
-
-  const usernameNormalized = normalizeUsername(parsed.data.username);
-  const admin = createAdminClient();
-  const { data: parent, error: parentError } = await admin
-    .from("parents")
-    .select("internal_auth_email,status")
-    .eq("username_normalized", usernameNormalized)
-    .maybeSingle();
-
-  if (parentError || !parent || parent.status !== "active") {
-    redirectWithMessage(path, "error", "Username hoặc mật khẩu không đúng");
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email: parent.internal_auth_email,
-    password: parsed.data.password,
-  });
-
-  if (error) {
-    redirectWithMessage(path, "error", "Username hoặc mật khẩu không đúng");
-  }
-
-  revalidatePath("/", "layout");
-  redirect("/parent");
+  redirectWithMessage(path, "error", "Cổng phụ huynh đang tạm tắt. Vui lòng đăng nhập nội bộ.");
 }
 
 export async function loginStaffAction(formData: FormData) {
