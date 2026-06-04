@@ -59,7 +59,7 @@ export async function MonthlyAttendanceRegisterPage({
         statusesByDate[date] = undefined;
         continue;
       }
-      statusesByDate[date] = studentStatuses?.get(date);
+      statusesByDate[date] = studentStatuses?.get(date) || "not_marked";
     }
 
     return {
@@ -86,7 +86,7 @@ export async function MonthlyAttendanceRegisterPage({
             Quay lại điểm danh ngày
           </Link>
           <h2 className="text-2xl font-semibold">Sổ điểm danh tháng</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Xem toàn bộ tháng dạng bảng giống sổ giấy — chỉ đọc.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Xem và chỉnh điểm danh cả tháng dạng bảng giống sổ giấy.</p>
         </div>
       </div>
 
@@ -111,7 +111,13 @@ export async function MonthlyAttendanceRegisterPage({
         </CardContent>
       </Card>
 
-      <AttendanceMonthlyGrid yearMonth={yearMonth} dayDates={dayDates} rows={rows} searchTargetId={searchTargetId} />
+      <AttendanceMonthlyGrid
+        yearMonth={yearMonth}
+        dayDates={dayDates}
+        rows={rows}
+        searchTargetId={searchTargetId}
+        redirectTo={`${basePath}?month=${yearMonth}`}
+      />
     </div>
   );
 }

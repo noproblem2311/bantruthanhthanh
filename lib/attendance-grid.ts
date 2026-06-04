@@ -24,6 +24,7 @@ export function getAttendanceRegisterTitle(yearMonth: string) {
 export function getAttendanceGridSymbol(status: AttendanceStatus | null | undefined) {
   if (status === "present") return "x";
   if (status === "excused_absent") return "P";
+  if (status === "unexcused_absent") return "K";
   return "";
 }
 

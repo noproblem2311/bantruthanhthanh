@@ -102,7 +102,7 @@ export async function updateAttendanceStudentInfoAction(formData: FormData) {
     })
     .eq("id", studentId);
 
-  if (error) redirectWithMessage(path, "error", "Không cập nhật được thông tin học sinh");
+  if (error) redirectWithMessage(path, "error", `Không cập nhật được thông tin học sinh: ${error.message}`);
 
   revalidatePath(path.split("?")[0] || path);
   redirectWithMessage(path, "success", "Đã cập nhật thông tin học sinh");
@@ -183,7 +183,7 @@ export async function saveAttendanceBatchAction(formData: FormData) {
     const admin = createAdminClient();
     for (const [packageType, packageStudentIds] of studentsByPackage.entries()) {
       const { error } = await admin.from("students").update({ boarding_package_type: packageType }).in("id", packageStudentIds);
-      if (error) redirectWithMessage(path, "error", "Không cập nhật được gói bán trú");
+      if (error) redirectWithMessage(path, "error", `Không cập nhật được gói bán trú: ${error.message}`);
     }
   }
 
@@ -256,4 +256,70 @@ export async function bulkMarkPresentAction(formData: FormData) {
 
   revalidatePath(path.split("?")[0] || path);
   redirectWithMessage(path, "success", `Đã đánh dấu có mặt cho ${rows.length} học sinh`);
+}
+
+export async function saveMonthlyAttendanceRegisterAction(formData: FormData) {
+  const profile = await requireRole(["admin", "manager"]);
+  const path = attendancePath(formData);
+  const yearMonth = formData.get("year_month");
+
+  if (typeof yearMonth !== "string" || !/^\d{4}-\d{2}$/.test(yearMonth)) {
+    redirectWithMessage(path, "error", "Tháng điểm danh không hợp lệ");
+  }
+
+  const cellPattern = /^status_([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})_(\d{4}-\d{2}-\d{2})$/i;
+  const cells = Array.from(formData.entries())
+    .map(([key, value]) => {
+      const match = key.match(cellPattern);
+      if (!match || typeof value !== "string") return null;
+      return { studentId: match[1], date: match[2], status: value };
+    })
+    .filter((cell): cell is { studentId: string; date: string; status: string } => Boolean(cell));
+
+  if (cells.length === 0) {
+    redirectWithMessage(path, "error", "Không có ô điểm danh nào để lưu");
+  }
+
+  const parsedCells = cells.map((cell) => {
+    if (!cell.date.startsWith(`${yearMonth}-`)) {
+      redirectWithMessage(path, "error", "Có ngày điểm danh nằm ngoài tháng đang lưu");
+    }
+    const parsedStatus = attendanceStatusSchema.safeParse(cell.status || "not_marked");
+    if (!parsedStatus.success) {
+      redirectWithMessage(path, "error", "Có trạng thái điểm danh không hợp lệ");
+    }
+    return { ...cell, status: parsedStatus.data };
+  });
+
+  const studentIds = Array.from(new Set(parsedCells.map((cell) => cell.studentId)));
+  const supabase = await createClient();
+  const { data: students } = await supabase
+    .from("students")
+    .select("id,created_at,enrollment_date,status")
+    .eq("status", "active")
+    .in("id", studentIds);
+  const studentsById = new Map(((students || []) as Pick<Student, "id" | "created_at" | "enrollment_date" | "status">[]).map((student) => [student.id, student]));
+
+  const now = new Date().toISOString();
+  const rows = parsedCells.map((cell) => {
+    const student = studentsById.get(cell.studentId);
+    if (!student || !isStudentEligibleForAttendanceDate(student, cell.date)) {
+      redirectWithMessage(path, "error", "Có học sinh chưa hợp lệ cho ngày điểm danh");
+    }
+
+    return {
+      student_id: cell.studentId,
+      attendance_date: cell.date,
+      status: cell.status,
+      note: null,
+      marked_by: profile.id,
+      marked_at: now,
+    };
+  });
+
+  const { error } = await supabase.from("attendance_records").upsert(rows, { onConflict: "student_id,attendance_date" });
+  if (error) redirectWithMessage(path, "error", "Không lưu được sổ điểm danh tháng");
+
+  revalidatePath(path.split("?")[0] || path);
+  redirectWithMessage(path, "success", `Đã lưu sổ điểm danh tháng ${yearMonth}`);
 }

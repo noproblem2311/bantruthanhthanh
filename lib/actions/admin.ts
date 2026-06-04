@@ -297,8 +297,8 @@ export async function updateStudentAction(formData: FormData) {
   const path = id ? `/admin/students/${id}` : "/admin/students";
   if (!parsed.success || !parsed.data.id) redirectWithMessage(path, "error", parsed.error?.issues[0]?.message || "Dữ liệu học sinh chưa hợp lệ");
 
-  const supabase = await createClient();
-  const { error } = await supabase
+  const admin = createAdminClient();
+  const { error } = await admin
     .from("students")
     .update({
       parent_id: parsed.data.parent_id,
@@ -317,7 +317,7 @@ export async function updateStudentAction(formData: FormData) {
     })
     .eq("id", parsed.data.id);
 
-  if (error) redirectWithMessage(path, "error", "Không cập nhật được học sinh");
+  if (error) redirectWithMessage(path, "error", `Không cập nhật được học sinh: ${error.message}`);
   revalidatePath("/admin/students");
   redirectWithMessage(path, "success", "Đã cập nhật học sinh");
 }
