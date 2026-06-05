@@ -26,11 +26,6 @@ function getMonthParam(value: string | string[] | undefined) {
   return typeof value === "string" && /^\d{4}-\d{2}$/.test(value) ? value : getYearMonth();
 }
 
-function escapeCsvCell(value: string) {
-  const safeValue = /^[=+\-@]/.test(value) ? `'${value}` : value;
-  return `"${safeValue.replaceAll('"', '""')}"`;
-}
-
 export async function MonthlyTuitionRegisterPage({
   searchParams,
   basePath,
@@ -66,27 +61,6 @@ export async function MonthlyTuitionRegisterPage({
   );
   const feesByStudent = await calculateMonthlyFeesForStudents(supabase, eligibleStudents, billingYearMonth);
   const currency = feeSetting?.currency || "VND";
-  const csvRows = [
-    ["STT", "Học sinh", "Lớp", "Phụ huynh", "Số điện thoại", "Học phí", "Đơn vị", "Đã nộp", "Đã gửi phiếu", "Ghi chú"],
-    ...eligibleStudents.map((student, index) => {
-      const record = recordsByStudent.get(student.id);
-      const fee = feesByStudent.get(student.id);
-
-      return [
-        String(index + 1),
-        student.full_name,
-        student.class_name || "",
-        student.parents?.full_name || student.parents?.username || "",
-        student.parents?.phone || "",
-        fee?.total_amount === null || fee?.total_amount === undefined ? "" : String(fee.total_amount),
-        currency,
-        record?.is_paid ? "Đã nộp" : "Chưa nộp",
-        record?.receipt_sent ? "Đã gửi" : "Chưa gửi",
-        record?.note || "",
-      ];
-    }),
-  ];
-  const csv = csvRows.map((row) => row.map(escapeCsvCell).join(",")).join("\n");
 
   return (
     <div className="space-y-5">
@@ -102,8 +76,7 @@ export async function MonthlyTuitionRegisterPage({
           <p className="mt-1 text-sm text-muted-foreground">Theo dõi và cập nhật học phí cả tháng trong một bảng gọn.</p>
         </div>
         <a
-          href={`data:text/csv;charset=utf-8,${encodeURIComponent(`\uFEFF${csv}`)}`}
-          download={`so-hoc-phi-${billingYearMonth}.csv`}
+          href={`/api/tuition/export?month=${billingYearMonth}`}
           className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border bg-white px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-muted/60"
         >
           <Download className="h-4 w-4" />
