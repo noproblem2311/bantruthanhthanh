@@ -1,4 +1,5 @@
-import { CreditCard, ReceiptText, Save, UsersRound } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, CreditCard, ReceiptText, Save, UsersRound } from "lucide-react";
 import { saveMonthlyTuitionRecordsAction } from "@/lib/actions/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClientListFilters } from "@/components/ui/client-list-filters";
@@ -149,13 +150,22 @@ export async function MonthlyTuitionPage({ searchParams, basePath }: { searchPar
           <h2 className="text-2xl font-semibold">Nộp học phí</h2>
           <p className="mt-1 text-sm text-muted-foreground">Theo dõi đã nộp/chưa nộp và ghi chú riêng cho từng học sinh theo tháng.</p>
         </div>
-        <form className="grid w-full gap-3 sm:max-w-sm sm:grid-cols-[1fr_auto] sm:items-end">
-          <div className="grid gap-2">
-            <Label htmlFor="month">Tháng</Label>
-            <Input id="month" name="month" type="month" defaultValue={billingYearMonth} />
-          </div>
-          <SubmitButton pendingText="Đang xem...">Xem tháng</SubmitButton>
-        </form>
+        <div className="grid w-full gap-3 sm:max-w-xl sm:grid-cols-[auto_1fr_auto] sm:items-end">
+          <Link
+            href={`${basePath}/register?month=${billingYearMonth}`}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border bg-white px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-muted/60"
+          >
+            <BookOpen className="h-4 w-4" />
+            Sổ học phí tháng
+          </Link>
+          <form className="contents">
+            <div className="grid gap-2">
+              <Label htmlFor="month">Tháng</Label>
+              <Input id="month" name="month" type="month" defaultValue={billingYearMonth} />
+            </div>
+            <SubmitButton pendingText="Đang xem...">Xem tháng</SubmitButton>
+          </form>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

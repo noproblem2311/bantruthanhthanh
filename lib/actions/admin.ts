@@ -576,9 +576,13 @@ export async function saveMonthlyTuitionRecordsAction(formData: FormData) {
   const fallbackPath = profile.role === "manager" ? `/manager/tuition?month=${encodeURIComponent(pathMonth)}` : `/admin/tuition?month=${encodeURIComponent(pathMonth)}`;
   const requestedPath = formData.get("redirect_to");
   const allowedPath = profile.role === "manager" ? "/manager/tuition" : "/admin/tuition";
+  const allowedRegisterPath = `${allowedPath}/register`;
   const path =
     typeof requestedPath === "string" &&
-    (requestedPath.startsWith(`${allowedPath}?`) || requestedPath === allowedPath)
+    (requestedPath.startsWith(`${allowedPath}?`) ||
+      requestedPath === allowedPath ||
+      requestedPath.startsWith(`${allowedRegisterPath}?`) ||
+      requestedPath === allowedRegisterPath)
       ? requestedPath
       : fallbackPath;
   const parsed = monthlyTuitionSaveSchema.safeParse({
@@ -645,7 +649,9 @@ export async function saveMonthlyTuitionRecordsAction(formData: FormData) {
   });
 
   revalidatePath("/admin/tuition");
+  revalidatePath("/admin/tuition/register");
   revalidatePath("/manager/tuition");
+  revalidatePath("/manager/tuition/register");
   redirectWithMessage(path, "success", `Đã lưu học phí tháng ${parsed.data.billing_year_month} cho ${rows.length} học sinh`);
 }
 
