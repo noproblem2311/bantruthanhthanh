@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { ReceiptPrintToolbar } from "@/components/receipts/print-toolbar";
 import { createClient } from "@/lib/supabase/server";
 import { formatVietnamDate, getYearMonth } from "@/lib/date";
@@ -222,6 +223,11 @@ function ReceiptCard({ receipt }: { receipt: Receipt }) {
         <p>- Phụ huynh có thắc mắc gì thì gặp trực tiếp cô Lan hoặc điện thoại số 0392333013 (chủ cơ sở).</p>
       </div>
 
+      <div className="receipt-payment" aria-label="Thông tin chuyển khoản">
+        <Image src="/images/payment-qr.jpeg" width={160} height={160} alt="QR chuyển khoản BIDV" className="receipt-payment-qr" />
+        <p>Phụ huynh chuyển tiền vui lòng đính kèm tên và lớp của học sinh.</p>
+      </div>
+
       <div className="receipt-footer">
         <p></p>
         <div>
@@ -419,6 +425,32 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
           font-size: 11px;
           font-style: italic;
           line-height: 1.35;
+        }
+
+        .receipt-payment {
+          display: none;
+        }
+
+        .receipt-page[data-paper="a5"] .receipt-payment {
+          margin-top: 10px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          border: 1px dashed #94a3b8;
+          padding: 8px;
+        }
+
+        .receipt-payment-qr {
+          height: 34mm;
+          width: 34mm;
+          flex: 0 0 auto;
+          object-fit: contain;
+        }
+
+        .receipt-payment p {
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 1.4;
         }
 
         .receipt-footer {
