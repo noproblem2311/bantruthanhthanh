@@ -24,6 +24,13 @@ export type StudentTuitionDebtSummary = {
   unpaidMonths: UnpaidTuitionMonth[];
 };
 
+export function getOutstandingTuitionDebt(summary: StudentTuitionDebtSummary | undefined, billingYearMonth: string) {
+  const outstandingMonths = (summary?.unpaidMonths || []).filter((month) => month.billingYearMonth < billingYearMonth);
+  if (outstandingMonths.length === 0) return 0;
+  if (outstandingMonths.some((month) => month.amount === null)) return null;
+  return outstandingMonths.reduce((sum, month) => sum + (month.amount || 0), 0);
+}
+
 function amountKey(studentId: string, billingYearMonth: string) {
   return `${studentId}:${billingYearMonth}`;
 }

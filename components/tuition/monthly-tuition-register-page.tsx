@@ -10,8 +10,9 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TBody, TD, TH, THead } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { getMonthBounds, getYearMonth } from "@/lib/date";
-import { calculateMonthlyFeesForStudents, getFeeSetting } from "@/lib/fees";
+import { getFeeSetting } from "@/lib/fees";
 import { isStudentEligibleBeforeDate } from "@/lib/student-attendance";
+import { buildStudentTuitionDebtSummaries, getOutstandingTuitionDebt } from "@/lib/tuition-debt";
 import { formatCurrency, getMessageParam } from "@/lib/utils";
 import type { MonthlyTuitionRecord, Parent, Student } from "@/lib/types";
 
@@ -59,7 +60,7 @@ export async function MonthlyTuitionRegisterPage({
   const recordsByStudent = new Map(
     ((tuitionRecords || []) as MonthlyTuitionRecord[]).map((record) => [record.student_id, record]),
   );
-  const feesByStudent = await calculateMonthlyFeesForStudents(supabase, eligibleStudents, billingYearMonth);
+  const debtSummaries = await buildStudentTuitionDebtSummaries(supabase, eligibleStudents, billingYearMonth);
   const currency = feeSetting?.currency || "VND";
 
   return (
@@ -111,13 +112,14 @@ export async function MonthlyTuitionRegisterPage({
 
         <Card>
           <CardContent className="p-0">
-            <Table className="min-w-[980px]">
+            <Table className="min-w-[1100px]">
               <THead>
                 <tr>
                   <TH className="w-14 text-center">STT</TH>
                   <TH>Học sinh</TH>
                   <TH>Phụ huynh</TH>
                   <TH className="text-right">Học phí</TH>
+                  <TH className="text-right">Nợ tồn</TH>
                   <TH className="w-28 text-center">Đã nộp</TH>
                   <TH className="w-32 text-center">Đã gửi phiếu</TH>
                   <TH className="min-w-56">Ghi chú</TH>
@@ -126,7 +128,8 @@ export async function MonthlyTuitionRegisterPage({
               <TBody id={searchTargetId}>
                 {eligibleStudents.map((student, index) => {
                   const record = recordsByStudent.get(student.id);
-                  const fee = feesByStudent.get(student.id);
+                  const debtSummary = debtSummaries.get(student.id);
+                  const outstandingDebt = getOutstandingTuitionDebt(debtSummary, billingYearMonth);
                   const parentLabel = student.parents?.full_name || student.parents?.username || "Chưa cập nhật";
 
                   return (
@@ -146,9 +149,12 @@ export async function MonthlyTuitionRegisterPage({
                         <p className="text-xs text-muted-foreground">{student.parents?.phone || "Chưa có SĐT"}</p>
                       </TD>
                       <TD className="text-right font-medium">
-                        {fee?.total_amount === null || fee?.total_amount === undefined
+                        {debtSummary?.currentMonthFee === null || debtSummary?.currentMonthFee === undefined
                           ? "Chưa tính"
-                          : formatCurrency(fee.total_amount, currency)}
+                          : formatCurrency(debtSummary.currentMonthFee, currency)}
+                      </TD>
+                      <TD className={`text-right font-medium ${outstandingDebt ? "text-amber-700" : ""}`}>
+                        {outstandingDebt === null ? "Chưa tính" : formatCurrency(outstandingDebt, currency)}
                       </TD>
                       <TD className="text-center align-middle">
                         <input

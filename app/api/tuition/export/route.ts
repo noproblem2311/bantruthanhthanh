@@ -1,10 +1,11 @@
 import ExcelJS from "exceljs";
 import { NextRequest } from "next/server";
 import { getMonthBounds, getYearMonth } from "@/lib/date";
-import { calculateMonthlyFeesForStudents, getFeeSetting } from "@/lib/fees";
+import { getFeeSetting } from "@/lib/fees";
 import { requireRole } from "@/lib/permissions";
 import { isStudentEligibleBeforeDate } from "@/lib/student-attendance";
 import { createClient } from "@/lib/supabase/server";
+import { buildStudentTuitionDebtSummaries, getOutstandingTuitionDebt } from "@/lib/tuition-debt";
 import type { MonthlyTuitionRecord, Parent, Student } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
   const recordsByStudent = new Map(
     ((tuitionRecords || []) as MonthlyTuitionRecord[]).map((record) => [record.student_id, record]),
   );
-  const feesByStudent = await calculateMonthlyFeesForStudents(supabase, eligibleStudents, billingYearMonth);
+  const debtSummaries = await buildStudentTuitionDebtSummaries(supabase, eligibleStudents, billingYearMonth);
   const currency = feeSetting?.currency || "VND";
   const paidCount = eligibleStudents.filter((student) => recordsByStudent.get(student.id)?.is_paid).length;
   const receiptCount = eligibleStudents.filter((student) => recordsByStudent.get(student.id)?.receipt_sent).length;
@@ -88,13 +89,14 @@ export async function GET(request: NextRequest) {
     { key: "parent", width: 24 },
     { key: "phone", width: 16 },
     { key: "amount", width: 17 },
+    { key: "debt", width: 17 },
     { key: "currency", width: 10 },
     { key: "paid", width: 14 },
     { key: "receipt", width: 16 },
     { key: "note", width: 34 },
   ];
 
-  worksheet.mergeCells("A1:J1");
+  worksheet.mergeCells("A1:K1");
   const titleCell = worksheet.getCell("A1");
   titleCell.value = "SỔ HỌC PHÍ THÁNG";
   titleCell.font = { name: "Arial", size: 18, bold: true, color: { argb: "FFFFFFFF" } };
@@ -102,7 +104,7 @@ export async function GET(request: NextRequest) {
   titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF166534" } };
   worksheet.getRow(1).height = 34;
 
-  worksheet.mergeCells("A2:J2");
+  worksheet.mergeCells("A2:K2");
   const summaryCell = worksheet.getCell("A2");
   summaryCell.value = `Tháng ${billingYearMonth.slice(5, 7)}/${billingYearMonth.slice(0, 4)}  |  Tổng: ${eligibleStudents.length} học sinh  |  Đã nộp: ${paidCount}  |  Đã gửi phiếu: ${receiptCount}`;
   summaryCell.font = { name: "Arial", size: 11, bold: true, color: { argb: "FF14532D" } };
@@ -111,7 +113,7 @@ export async function GET(request: NextRequest) {
   worksheet.getRow(2).height = 26;
 
   const headerRow = worksheet.getRow(4);
-  headerRow.values = ["STT", "Học sinh", "Lớp", "Phụ huynh", "Số điện thoại", "Học phí", "Đơn vị", "Tình trạng", "Phiếu thu", "Ghi chú"];
+  headerRow.values = ["STT", "Học sinh", "Lớp", "Phụ huynh", "Số điện thoại", "Học phí", "Nợ tồn", "Đơn vị", "Tình trạng", "Phiếu thu", "Ghi chú"];
   headerRow.height = 28;
   headerRow.eachCell((cell) => {
     cell.font = { name: "Arial", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
@@ -122,14 +124,16 @@ export async function GET(request: NextRequest) {
 
   eligibleStudents.forEach((student, index) => {
     const record = recordsByStudent.get(student.id);
-    const fee = feesByStudent.get(student.id);
+    const debtSummary = debtSummaries.get(student.id);
+    const outstandingDebt = getOutstandingTuitionDebt(debtSummary, billingYearMonth);
     const row = worksheet.addRow({
       index: index + 1,
       student: safeExcelText(student.full_name),
       class: safeExcelText(student.class_name),
       parent: safeExcelText(student.parents?.full_name || student.parents?.username),
       phone: safeExcelText(student.parents?.phone),
-      amount: fee?.total_amount ?? null,
+      amount: debtSummary?.currentMonthFee ?? null,
+      debt: outstandingDebt,
       currency,
       paid: record?.is_paid ? "Đã nộp" : "Chưa nộp",
       receipt: record?.receipt_sent ? "Đã gửi" : "Chưa gửi",
@@ -142,6 +146,12 @@ export async function GET(request: NextRequest) {
     row.getCell("index").alignment = { horizontal: "center", vertical: "middle" };
     row.getCell("amount").numFmt = currency === "VND" ? '#,##0" ₫"' : "#,##0.00";
     row.getCell("amount").alignment = { horizontal: "right", vertical: "middle" };
+    row.getCell("debt").numFmt = currency === "VND" ? '#,##0" ₫"' : "#,##0.00";
+    row.getCell("debt").alignment = { horizontal: "right", vertical: "middle" };
+    if (outstandingDebt) {
+      row.getCell("debt").font = { name: "Arial", size: 10, bold: true, color: { argb: "FFB45309" } };
+      row.getCell("debt").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFBEB" } };
+    }
     row.getCell("currency").alignment = { horizontal: "center", vertical: "middle" };
 
     for (const key of ["paid", "receipt"] as const) {
@@ -165,7 +175,7 @@ export async function GET(request: NextRequest) {
   });
 
   const lastDataRow = Math.max(4 + eligibleStudents.length, 4);
-  worksheet.autoFilter = { from: "A4", to: `J${lastDataRow}` };
+  worksheet.autoFilter = { from: "A4", to: `K${lastDataRow}` };
 
   const totalRow = worksheet.getRow(lastDataRow + 2);
   worksheet.mergeCells(`A${totalRow.number}:E${totalRow.number}`);
@@ -174,15 +184,25 @@ export async function GET(request: NextRequest) {
   totalRow.getCell(1).font = { name: "Arial", size: 11, bold: true, color: { argb: "FF14532D" } };
   totalRow.getCell(6).value = {
     formula: eligibleStudents.length > 0 ? `SUM(F5:F${lastDataRow})` : "0",
-    result: eligibleStudents.reduce((sum, student) => sum + (feesByStudent.get(student.id)?.total_amount || 0), 0),
+    result: eligibleStudents.reduce((sum, student) => sum + (debtSummaries.get(student.id)?.currentMonthFee || 0), 0),
   };
   totalRow.getCell(6).numFmt = currency === "VND" ? '#,##0" ₫"' : "#,##0.00";
   totalRow.getCell(6).font = { name: "Arial", size: 11, bold: true, color: { argb: "FF14532D" } };
   totalRow.getCell(6).alignment = { horizontal: "right", vertical: "middle" };
-  worksheet.mergeCells(`G${totalRow.number}:J${totalRow.number}`);
-  totalRow.getCell(7).value = `Đã nộp ${paidCount}/${eligibleStudents.length} học sinh`;
-  totalRow.getCell(7).font = { name: "Arial", size: 11, bold: true, color: { argb: "FF14532D" } };
-  totalRow.getCell(7).alignment = { horizontal: "center", vertical: "middle" };
+  totalRow.getCell(7).value = {
+    formula: eligibleStudents.length > 0 ? `SUM(G5:G${lastDataRow})` : "0",
+    result: eligibleStudents.reduce(
+      (sum, student) => sum + (getOutstandingTuitionDebt(debtSummaries.get(student.id), billingYearMonth) || 0),
+      0,
+    ),
+  };
+  totalRow.getCell(7).numFmt = currency === "VND" ? '#,##0" ₫"' : "#,##0.00";
+  totalRow.getCell(7).font = { name: "Arial", size: 11, bold: true, color: { argb: "FFB45309" } };
+  totalRow.getCell(7).alignment = { horizontal: "right", vertical: "middle" };
+  worksheet.mergeCells(`H${totalRow.number}:K${totalRow.number}`);
+  totalRow.getCell(8).value = `Đã nộp ${paidCount}/${eligibleStudents.length} học sinh`;
+  totalRow.getCell(8).font = { name: "Arial", size: 11, bold: true, color: { argb: "FF14532D" } };
+  totalRow.getCell(8).alignment = { horizontal: "center", vertical: "middle" };
   totalRow.eachCell({ includeEmpty: true }, (cell) => {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDCFCE7" } };
   });
