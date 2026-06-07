@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageMessage } from "@/components/ui/message";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { fetchAllAttendanceRecordsInRange } from "@/lib/attendance-records";
 import { createClient } from "@/lib/supabase/server";
 import { buildAttendanceStatusMap, getMonthDateRange, getMonthDayDates } from "@/lib/attendance-grid";
 import { getYearMonth } from "@/lib/date";
@@ -40,17 +41,13 @@ export async function MonthlyAttendanceRegisterPage({
   const searchTargetId = `${basePath.replace(/\//g, "-")}-grid`;
   const supabase = await createClient();
 
-  const [{ data: students }, { data: records }] = await Promise.all([
+  const [{ data: students }, records] = await Promise.all([
     supabase.from("students").select("id, full_name, class_name, enrollment_date, created_at, status").eq("status", "active").order("full_name"),
-    supabase
-      .from("attendance_records")
-      .select("student_id, attendance_date, status, updated_at")
-      .gte("attendance_date", start)
-      .lt("attendance_date", end),
+    fetchAllAttendanceRecordsInRange(supabase, start, end),
   ]);
 
-  const statusMap = buildAttendanceStatusMap((records || []) as Pick<AttendanceRecord, "student_id" | "attendance_date" | "status">[]);
-  const registerVersion = (records || []).reduce(
+  const statusMap = buildAttendanceStatusMap(records);
+  const registerVersion = records.reduce(
     (latest: string, record: { updated_at: string }) => (record.updated_at > latest ? record.updated_at : latest),
     "",
   );

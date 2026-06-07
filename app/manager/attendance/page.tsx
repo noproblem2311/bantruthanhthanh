@@ -5,6 +5,7 @@ import { AttendanceCalendar, type AttendanceCalendarRecord, type AttendanceCalen
 import { AttendanceFilterCard } from "@/components/attendance/attendance-filter-card";
 import { AttendanceTable, type AttendanceStudent } from "@/components/attendance/attendance-table";
 import { PageMessage } from "@/components/ui/message";
+import { fetchAllAttendanceRecordsInRange } from "@/lib/attendance-records";
 import { createClient } from "@/lib/supabase/server";
 import { getDateOrVietnamToday, getMonthBounds } from "@/lib/date";
 import { isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
@@ -31,11 +32,11 @@ export default async function ManagerAttendancePage({ searchParams }: { searchPa
   const monthBounds = getMonthBounds(date.slice(0, 7));
   const supabase = await createClient();
 
-  const [{ data: students }, { data: records }, { data: offRequests }, { data: monthRecords }, { data: monthOffRequests }] = await Promise.all([
+  const [{ data: students }, { data: records }, { data: offRequests }, monthRecords, { data: monthOffRequests }] = await Promise.all([
     supabase.from("students").select("*, parents(full_name,username,phone)").eq("status", "active").order("full_name"),
     supabase.from("attendance_records").select("*").eq("attendance_date", date),
     supabase.from("off_requests").select("student_id").eq("off_date", date).in("status", ["auto_approved", "approved"]),
-    supabase.from("attendance_records").select("student_id,attendance_date,status,updated_at").gte("attendance_date", monthBounds.start).lt("attendance_date", monthBounds.end),
+    fetchAllAttendanceRecordsInRange(supabase, monthBounds.start, monthBounds.end),
     supabase
       .from("off_requests")
       .select("off_date,student_id")
@@ -59,7 +60,7 @@ export default async function ManagerAttendancePage({ searchParams }: { searchPa
   const searchTargetId = "manager-attendance-results";
 
   const registerMonth = date.slice(0, 7);
-  const monthVersion = (monthRecords || []).reduce(
+  const monthVersion = monthRecords.reduce(
     (latest: string, record: { updated_at: string }) => (record.updated_at > latest ? record.updated_at : latest),
     "",
   );
@@ -80,7 +81,7 @@ export default async function ManagerAttendancePage({ searchParams }: { searchPa
         selectedDate={date}
         basePath="/manager/attendance"
         activeStudents={activeStudents}
-        records={(monthRecords || []) as AttendanceCalendarRecord[]}
+        records={monthRecords as AttendanceCalendarRecord[]}
         approvedOffRequests={(monthOffRequests || []) as AttendanceCalendarOffRequest[]}
         refreshKey={monthVersion}
         q=""

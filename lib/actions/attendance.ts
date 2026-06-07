@@ -301,7 +301,7 @@ export async function saveMonthlyAttendanceRegisterAction(formData: FormData) {
   const studentIds = Array.from(new Set(parsedCells.map((cell) => cell.studentId)));
   const supabase = await createClient();
   const { start, end } = getMonthBounds(yearMonth);
-  const [{ data: students }, { data: currentRecords }] = await Promise.all([
+  const [{ data: students }, { data: latestRecord }] = await Promise.all([
     supabase
       .from("students")
       .select("id,created_at,enrollment_date,status")
@@ -311,14 +311,14 @@ export async function saveMonthlyAttendanceRegisterAction(formData: FormData) {
       .from("attendance_records")
       .select("updated_at")
       .gte("attendance_date", start)
-      .lt("attendance_date", end),
+      .lt("attendance_date", end)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
   const studentsById = new Map(((students || []) as Pick<Student, "id" | "created_at" | "enrollment_date" | "status">[]).map((student) => [student.id, student]));
   const submittedVersion = formData.get("register_version");
-  const currentVersion = (currentRecords || []).reduce(
-    (latest: string, record: { updated_at: string }) => (record.updated_at > latest ? record.updated_at : latest),
-    "",
-  );
+  const currentVersion = latestRecord?.updated_at || "";
 
   if (typeof submittedVersion !== "string" || submittedVersion !== currentVersion) {
     redirectWithMessage(
