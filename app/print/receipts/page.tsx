@@ -103,7 +103,10 @@ function buildHistoryReceipts(snapshot: MonthlyHistorySnapshot, rows: MonthlyHis
 
 function buildManualReceipts(batch: ReceiptBatch, rows: ReceiptItem[]) {
   return rows.map((row, index): Receipt => {
-    const lines: ReceiptLine[] = [{ label: "Tiền gói bán trú", amount: row.boarding_amount }];
+    const lines: ReceiptLine[] = [];
+    if (row.boarding_amount !== 0) {
+      lines.push({ label: "Tiền gói bán trú", amount: row.boarding_amount });
+    }
 
     lines.push(
       { label: "Tiền học Tin học", amount: row.computer_amount },
