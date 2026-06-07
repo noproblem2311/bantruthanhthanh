@@ -44,12 +44,16 @@ export async function MonthlyAttendanceRegisterPage({
     supabase.from("students").select("id, full_name, class_name, enrollment_date, created_at, status").eq("status", "active").order("full_name"),
     supabase
       .from("attendance_records")
-      .select("student_id, attendance_date, status")
+      .select("student_id, attendance_date, status, updated_at")
       .gte("attendance_date", start)
       .lt("attendance_date", end),
   ]);
 
   const statusMap = buildAttendanceStatusMap((records || []) as Pick<AttendanceRecord, "student_id" | "attendance_date" | "status">[]);
+  const registerVersion = (records || []).reduce(
+    (latest: string, record: { updated_at: string }) => (record.updated_at > latest ? record.updated_at : latest),
+    "",
+  );
   const activeStudents = (students || []) as Pick<Student, "id" | "full_name" | "class_name" | "enrollment_date" | "created_at">[];
 
   const rows: AttendanceMonthlyGridRow[] = activeStudents.map((student, index) => {
@@ -116,6 +120,7 @@ export async function MonthlyAttendanceRegisterPage({
         rows={rows}
         searchTargetId={searchTargetId}
         redirectTo={`${basePath}?month=${yearMonth}`}
+        registerVersion={registerVersion}
       />
     </div>
   );

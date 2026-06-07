@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatVietnamDate } from "@/lib/date";
+import { formatVietnamDate, getMonthBounds } from "@/lib/date";
 import { requireRole } from "@/lib/permissions";
 import { isStudentEligibleForAttendanceDate } from "@/lib/student-attendance";
 import { attendanceStatusSchema, bulkAttendanceSchema, markAttendanceSchema } from "@/lib/validators/attendance";
@@ -293,12 +293,33 @@ export async function saveMonthlyAttendanceRegisterAction(formData: FormData) {
 
   const studentIds = Array.from(new Set(parsedCells.map((cell) => cell.studentId)));
   const supabase = await createClient();
-  const { data: students } = await supabase
-    .from("students")
-    .select("id,created_at,enrollment_date,status")
-    .eq("status", "active")
-    .in("id", studentIds);
+  const { start, end } = getMonthBounds(yearMonth);
+  const [{ data: students }, { data: currentRecords }] = await Promise.all([
+    supabase
+      .from("students")
+      .select("id,created_at,enrollment_date,status")
+      .eq("status", "active")
+      .in("id", studentIds),
+    supabase
+      .from("attendance_records")
+      .select("updated_at")
+      .gte("attendance_date", start)
+      .lt("attendance_date", end),
+  ]);
   const studentsById = new Map(((students || []) as Pick<Student, "id" | "created_at" | "enrollment_date" | "status">[]).map((student) => [student.id, student]));
+  const submittedVersion = formData.get("register_version");
+  const currentVersion = (currentRecords || []).reduce(
+    (latest: string, record: { updated_at: string }) => (record.updated_at > latest ? record.updated_at : latest),
+    "",
+  );
+
+  if (typeof submittedVersion !== "string" || submittedVersion !== currentVersion) {
+    redirectWithMessage(
+      `${path}${path.includes("?") ? "&" : "?"}refresh=${Date.now()}`,
+      "error",
+      "Sổ điểm danh đã thay đổi ở nơi khác. Dữ liệu mới đã được tải lại, vui lòng kiểm tra rồi lưu lại.",
+    );
+  }
 
   const now = new Date().toISOString();
   const rows = parsedCells.map((cell) => {

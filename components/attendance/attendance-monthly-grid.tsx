@@ -21,12 +21,14 @@ export function AttendanceMonthlyGrid({
   rows,
   searchTargetId,
   redirectTo,
+  registerVersion,
 }: {
   yearMonth: string;
   dayDates: string[];
   rows: AttendanceMonthlyGridRow[];
   searchTargetId: string;
   redirectTo: string;
+  registerVersion: string;
 }) {
   return (
     <Card>
@@ -55,6 +57,7 @@ export function AttendanceMonthlyGrid({
         <form action={saveMonthlyAttendanceRegisterAction}>
           <input type="hidden" name="year_month" value={yearMonth} />
           <input type="hidden" name="redirect_to" value={redirectTo} />
+          <input type="hidden" name="register_version" value={registerVersion} />
         <div id={searchTargetId} className="overflow-x-auto overscroll-x-contain">
           <table className="w-full min-w-[720px] border-collapse text-sm">
             <thead>
