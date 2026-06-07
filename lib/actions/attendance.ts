@@ -10,7 +10,14 @@ import { attendanceStatusSchema, bulkAttendanceSchema, markAttendanceSchema } fr
 import { redirectWithMessage } from "@/lib/auth/messages";
 import type { BoardingPackageType, Student } from "@/lib/types";
 
-const boardingPackageValues: BoardingPackageType[] = ["weekday", "saturday", "two_days", "three_days", "four_days"];
+const boardingPackageValues: BoardingPackageType[] = [
+  "weekday",
+  "saturday",
+  "two_days",
+  "three_days",
+  "four_days",
+  "morning_weekday",
+];
 
 function isBoardingPackageType(value: FormDataEntryValue | null): value is BoardingPackageType {
   return typeof value === "string" && boardingPackageValues.includes(value as BoardingPackageType);

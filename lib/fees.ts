@@ -12,6 +12,7 @@ export const DEFAULT_WEEKDAY_PACKAGE_AMOUNT = 720000;
 export const DEFAULT_TWO_DAYS_PACKAGE_AMOUNT = 300000;
 export const DEFAULT_THREE_DAYS_PACKAGE_AMOUNT = 400000;
 export const DEFAULT_FOUR_DAYS_PACKAGE_AMOUNT = 590000;
+export const DEFAULT_MORNING_WEEKDAY_PACKAGE_AMOUNT = 290000;
 export const DEFAULT_ABSENCE_DEDUCTION_AMOUNT = 18000;
 
 export function getPackageAmount(packageType: BoardingPackageType, feeSetting: FeeSetting) {
@@ -19,6 +20,7 @@ export function getPackageAmount(packageType: BoardingPackageType, feeSetting: F
   if (packageType === "weekday") return feeSetting.weekday_package_amount ?? DEFAULT_WEEKDAY_PACKAGE_AMOUNT;
   if (packageType === "two_days") return DEFAULT_TWO_DAYS_PACKAGE_AMOUNT;
   if (packageType === "three_days") return DEFAULT_THREE_DAYS_PACKAGE_AMOUNT;
+  if (packageType === "morning_weekday") return DEFAULT_MORNING_WEEKDAY_PACKAGE_AMOUNT;
   return DEFAULT_FOUR_DAYS_PACKAGE_AMOUNT;
 }
 

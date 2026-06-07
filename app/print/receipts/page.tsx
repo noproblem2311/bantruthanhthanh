@@ -67,7 +67,10 @@ function buildHistoryReceipts(snapshot: MonthlyHistorySnapshot, rows: MonthlyHis
     const lines: ReceiptLine[] = [];
     if (packageAmount > 0) {
       lines.push({
-        label: `Tiền gói bán trú ${boardingPackageLabels[row.boarding_package_type as BoardingPackageType]}`,
+        label:
+          row.boarding_package_type === "morning_weekday"
+            ? "Tiền học buổi sáng T2-T6 (không bán trú)"
+            : `Tiền gói bán trú ${boardingPackageLabels[row.boarding_package_type as BoardingPackageType]}`,
         amount: packageAmount,
       });
     }

@@ -36,7 +36,9 @@ export const studentSchema = z.object({
   health_notes: z.string().optional(),
   allergy_notes: z.string().optional(),
   pickup_notes: z.string().optional(),
-  boarding_package_type: z.enum(["weekday", "saturday", "two_days", "three_days", "four_days"]).default("weekday"),
+  boarding_package_type: z
+    .enum(["weekday", "saturday", "two_days", "three_days", "four_days", "morning_weekday"])
+    .default("weekday"),
   enrollment_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày vào không hợp lệ").optional().or(z.literal("")),
   status: z.enum(["active", "inactive"]).default("active"),
 });

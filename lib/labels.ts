@@ -32,6 +32,7 @@ export const boardingPackageLabels: Record<BoardingPackageType, string> = {
   two_days: "2 ngày/tuần",
   three_days: "3 ngày/tuần",
   four_days: "4 ngày/tuần",
+  morning_weekday: "Buổi sáng T2-T6 (không bán trú)",
 };
 
 export const boardingPackageOptions: Array<{ value: BoardingPackageType; label: string }> = [
@@ -40,6 +41,7 @@ export const boardingPackageOptions: Array<{ value: BoardingPackageType; label: 
   { value: "two_days", label: boardingPackageLabels.two_days },
   { value: "three_days", label: boardingPackageLabels.three_days },
   { value: "four_days", label: boardingPackageLabels.four_days },
+  { value: "morning_weekday", label: boardingPackageLabels.morning_weekday },
 ];
 
 export function attendanceBadgeVariant(status: AttendanceStatus) {
