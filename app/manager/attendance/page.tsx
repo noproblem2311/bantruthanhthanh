@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { BookOpen } from "lucide-react";
 import { AttendanceCalendar, type AttendanceCalendarRecord, type AttendanceCalendarOffRequest } from "@/components/attendance/attendance-calendar";
 import { AttendanceFilterCard } from "@/components/attendance/attendance-filter-card";
@@ -12,6 +13,10 @@ import type { AttendanceRecord } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 function buildRedirectTo(date: string) {
   const params = new URLSearchParams();
   params.set("date", date);
@@ -19,6 +24,7 @@ function buildRedirectTo(date: string) {
 }
 
 export default async function ManagerAttendancePage({ searchParams }: { searchParams: SearchParams }) {
+  await connection();
   const params = await searchParams;
   const date = getDateOrVietnamToday(params.date);
   const errorMessage = getMessageParam(params, "error");
@@ -29,7 +35,7 @@ export default async function ManagerAttendancePage({ searchParams }: { searchPa
     supabase.from("students").select("*, parents(full_name,username,phone)").eq("status", "active").order("full_name"),
     supabase.from("attendance_records").select("*").eq("attendance_date", date),
     supabase.from("off_requests").select("student_id").eq("off_date", date).in("status", ["auto_approved", "approved"]),
-    supabase.from("attendance_records").select("student_id,attendance_date,status").gte("attendance_date", monthBounds.start).lt("attendance_date", monthBounds.end),
+    supabase.from("attendance_records").select("student_id,attendance_date,status,updated_at").gte("attendance_date", monthBounds.start).lt("attendance_date", monthBounds.end),
     supabase
       .from("off_requests")
       .select("off_date,student_id")
@@ -53,13 +59,17 @@ export default async function ManagerAttendancePage({ searchParams }: { searchPa
   const searchTargetId = "manager-attendance-results";
 
   const registerMonth = date.slice(0, 7);
+  const monthVersion = (monthRecords || []).reduce(
+    (latest: string, record: { updated_at: string }) => (record.updated_at > latest ? record.updated_at : latest),
+    "",
+  );
 
   return (
     <div className="space-y-5">
       <PageMessage success={getMessageParam(params, "success")} error={errorMessage} />
       <div className="flex justify-end">
         <Link
-          href={`/manager/attendance/register?month=${registerMonth}`}
+          href={`/manager/attendance/register?month=${registerMonth}&refresh=${encodeURIComponent(monthVersion)}`}
           className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border bg-white px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-muted/60"
         >
           <BookOpen className="h-4 w-4" />
@@ -72,6 +82,7 @@ export default async function ManagerAttendancePage({ searchParams }: { searchPa
         activeStudents={activeStudents}
         records={(monthRecords || []) as AttendanceCalendarRecord[]}
         approvedOffRequests={(monthOffRequests || []) as AttendanceCalendarOffRequest[]}
+        refreshKey={monthVersion}
         q=""
         status="all"
       />

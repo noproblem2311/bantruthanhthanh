@@ -21,6 +21,13 @@ function attendancePath(formData: FormData) {
   return typeof value === "string" && value.startsWith("/") ? value : "/manager/attendance";
 }
 
+function revalidateAttendancePages() {
+  revalidatePath("/admin/attendance");
+  revalidatePath("/admin/attendance/register");
+  revalidatePath("/manager/attendance");
+  revalidatePath("/manager/attendance/register");
+}
+
 export async function markAttendanceAction(formData: FormData) {
   const profile = await requireRole(["admin", "manager"]);
   const parsed = markAttendanceSchema.safeParse({
@@ -60,7 +67,7 @@ export async function markAttendanceAction(formData: FormData) {
 
   if (error) redirectWithMessage(path, "error", "Không lưu được điểm danh");
 
-  revalidatePath(path.split("?")[0] || path);
+  revalidateAttendancePages();
   redirectWithMessage(path, "success", "Đã cập nhật điểm danh");
 }
 
@@ -104,7 +111,7 @@ export async function updateAttendanceStudentInfoAction(formData: FormData) {
 
   if (error) redirectWithMessage(path, "error", `Không cập nhật được thông tin học sinh: ${error.message}`);
 
-  revalidatePath(path.split("?")[0] || path);
+  revalidateAttendancePages();
   redirectWithMessage(path, "success", "Đã cập nhật thông tin học sinh");
 }
 
@@ -191,7 +198,7 @@ export async function saveAttendanceBatchAction(formData: FormData) {
 
   if (error) redirectWithMessage(path, "error", "Không lưu được điểm danh");
 
-  revalidatePath(path.split("?")[0] || path);
+  revalidateAttendancePages();
   redirectWithMessage(path, "success", `Đã lưu điểm danh ngày ${formatVietnamDate(attendanceDate)} cho ${rows.length} học sinh`);
 }
 
@@ -254,7 +261,7 @@ export async function bulkMarkPresentAction(formData: FormData) {
   const { error } = await supabase.from("attendance_records").upsert(rows, { onConflict: "student_id,attendance_date" });
   if (error) redirectWithMessage(path, "error", "Không bulk điểm danh được");
 
-  revalidatePath(path.split("?")[0] || path);
+  revalidateAttendancePages();
   redirectWithMessage(path, "success", `Đã đánh dấu có mặt cho ${rows.length} học sinh`);
 }
 
@@ -342,6 +349,6 @@ export async function saveMonthlyAttendanceRegisterAction(formData: FormData) {
   if (error) redirectWithMessage(path, "error", "Không lưu được sổ điểm danh tháng");
 
   const refreshedPath = `${path}${path.includes("?") ? "&" : "?"}refresh=${Date.now()}`;
-  revalidatePath(path.split("?")[0] || path);
+  revalidateAttendancePages();
   redirectWithMessage(refreshedPath, "success", `Đã lưu sổ điểm danh tháng ${yearMonth}`);
 }

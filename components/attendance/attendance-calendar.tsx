@@ -10,6 +10,7 @@ export type AttendanceCalendarRecord = {
   student_id: string;
   attendance_date: string;
   status: AttendanceStatus;
+  updated_at?: string;
 };
 
 export type AttendanceCalendarOffRequest = {
@@ -60,8 +61,9 @@ function formatMonthLabel(date: string) {
   }).format(new Date(`${date.slice(0, 7)}-01T00:00:00+07:00`));
 }
 
-function buildHref(basePath: string, date: string, q: string, status: string) {
+function buildHref(basePath: string, date: string, q: string, status: string, refreshKey: string) {
   const params = new URLSearchParams({ date });
+  if (refreshKey) params.set("refresh", refreshKey);
   if (q) params.set("q", q);
   if (status && status !== "all") params.set("status", status);
   return `${basePath}?${params.toString()}`;
@@ -91,6 +93,7 @@ export function AttendanceCalendar({
   activeStudents,
   records,
   approvedOffRequests,
+  refreshKey = "",
   q = "",
   status = "all",
 }: {
@@ -99,6 +102,7 @@ export function AttendanceCalendar({
   activeStudents: AttendanceCalendarStudent[];
   records: AttendanceCalendarRecord[];
   approvedOffRequests: AttendanceCalendarOffRequest[];
+  refreshKey?: string;
   q?: string;
   status?: string;
 }) {
@@ -167,20 +171,20 @@ export function AttendanceCalendar({
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href={buildHref(basePath, previousMonthDate, q, status)}
+            href={buildHref(basePath, previousMonthDate, q, status, refreshKey)}
             aria-label="Tháng trước"
             className="grid h-10 w-10 place-items-center rounded-md border bg-white transition hover:-translate-y-0.5 hover:bg-muted/70 hover:shadow-sm active:translate-y-0"
           >
             <ChevronLeft className="h-5 w-5" />
           </Link>
           <Link
-            href={buildHref(basePath, today, q, status)}
+            href={buildHref(basePath, today, q, status, refreshKey)}
             className="inline-flex min-h-10 items-center justify-center rounded-md border bg-white px-3 text-sm font-medium transition hover:-translate-y-0.5 hover:bg-muted/70 hover:shadow-sm active:translate-y-0"
           >
             Hôm nay
           </Link>
           <Link
-            href={buildHref(basePath, nextMonthDate, q, status)}
+            href={buildHref(basePath, nextMonthDate, q, status, refreshKey)}
             aria-label="Tháng sau"
             className="grid h-10 w-10 place-items-center rounded-md border bg-white transition hover:-translate-y-0.5 hover:bg-muted/70 hover:shadow-sm active:translate-y-0"
           >
@@ -225,7 +229,7 @@ export function AttendanceCalendar({
             return (
               <Link
                 key={date}
-                href={buildHref(basePath, date, q, status)}
+                href={buildHref(basePath, date, q, status, refreshKey)}
                 aria-label={`${date}: ${stateLabel} điểm danh, ${stats?.presentStudentIds.size || 0} học sinh có mặt`}
                 className={cn(
                   "min-h-20 rounded-md border bg-white p-2 text-left transition hover:-translate-y-0.5 hover:shadow-sm active:translate-y-0",
