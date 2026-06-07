@@ -2,7 +2,6 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getMonthBounds, getMonthLabel, getPreviousYearMonth } from "@/lib/date";
 import { calculateMonthlyFeesForStudents, calculateMonthlyFeesForStudentsByMonths } from "@/lib/fees";
-import { getStudentAttendanceStartDate } from "@/lib/student-attendance";
 import type { MonthlyTuitionRecord, Student } from "@/lib/types";
 
 type SupabaseLike = SupabaseClient;
@@ -103,13 +102,7 @@ async function getPresentDayCountsInMonth(supabase: SupabaseLike, students: Stud
     .lt("attendance_date", end)
     .eq("status", "present");
 
-  const studentsById = new Map(students.map((student) => [student.id, student]));
-
   for (const record of attendance || []) {
-    const student = studentsById.get(record.student_id);
-    if (!student || record.attendance_date < getStudentAttendanceStartDate(student)) {
-      continue;
-    }
     counts.set(record.student_id, (counts.get(record.student_id) || 0) + 1);
   }
 
