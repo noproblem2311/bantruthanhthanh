@@ -320,6 +320,7 @@ export async function saveMonthlyAttendanceRegisterAction(formData: FormData) {
   const { error } = await supabase.from("attendance_records").upsert(rows, { onConflict: "student_id,attendance_date" });
   if (error) redirectWithMessage(path, "error", "Không lưu được sổ điểm danh tháng");
 
+  const refreshedPath = `${path}${path.includes("?") ? "&" : "?"}refresh=${Date.now()}`;
   revalidatePath(path.split("?")[0] || path);
-  redirectWithMessage(path, "success", `Đã lưu sổ điểm danh tháng ${yearMonth}`);
+  redirectWithMessage(refreshedPath, "success", `Đã lưu sổ điểm danh tháng ${yearMonth}`);
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, ChevronLeft } from "lucide-react";
 import { AttendanceMonthlyGrid, type AttendanceMonthlyGridRow } from "@/components/attendance/attendance-monthly-grid";
+import { AttendanceRefreshLink } from "@/components/attendance/attendance-refresh-link";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClientSearch } from "@/components/ui/client-search";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { buildAttendanceStatusMap, getMonthDateRange, getMonthDayDates } from "@/lib/attendance-grid";
 import { getYearMonth } from "@/lib/date";
 import { getMessageParam } from "@/lib/utils";
+import { connection } from "next/server";
 import type { AttendanceRecord, Student } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -30,6 +32,7 @@ export async function MonthlyAttendanceRegisterPage({
   basePath: RegisterBasePath;
   attendancePath: AttendanceBasePath;
 }) {
+  await connection();
   const params = await searchParams;
   const yearMonth = getMonthParam(params.month);
   const dayDates = getMonthDayDates(yearMonth);
@@ -83,6 +86,7 @@ export async function MonthlyAttendanceRegisterPage({
           <h2 className="text-2xl font-semibold">Sổ điểm danh tháng</h2>
           <p className="mt-1 text-sm text-muted-foreground">Xem và chỉnh điểm danh cả tháng dạng bảng giống sổ giấy.</p>
         </div>
+        <AttendanceRefreshLink href={`${basePath}?month=${yearMonth}`} />
       </div>
 
       <Card>
