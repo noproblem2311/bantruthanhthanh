@@ -3,18 +3,35 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { AppRole, Profile } from "@/lib/types";
 
+async function waitForAuthRetry() {
+  await new Promise((resolve) => setTimeout(resolve, 150));
+}
+
 export async function getCurrentProfile() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let claimsResult = await supabase.auth.getClaims();
+  if (claimsResult.error) {
+    await waitForAuthRetry();
+    claimsResult = await supabase.auth.getClaims();
+  }
+  if (claimsResult.error) {
+    throw new Error(`Không xác thực được phiên đăng nhập: ${claimsResult.error.message}`);
+  }
+  const userId = claimsResult.data?.claims.sub;
 
-  if (!user) return null;
+  if (!userId) return null;
 
-  const { data, error } = await supabase.from("profiles").select("*").eq("auth_user_id", user.id).single();
-  if (error || !data) return null;
+  let profileResult = await supabase.from("profiles").select("*").eq("auth_user_id", userId).maybeSingle();
+  if (profileResult.error) {
+    await waitForAuthRetry();
+    profileResult = await supabase.from("profiles").select("*").eq("auth_user_id", userId).maybeSingle();
+  }
+  if (profileResult.error) {
+    throw new Error(`Không tải được hồ sơ đăng nhập: ${profileResult.error.message}`);
+  }
+  if (!profileResult.data) return null;
 
-  return data as Profile;
+  return profileResult.data as Profile;
 }
 
 export async function requireProfile() {

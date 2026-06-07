@@ -14,6 +14,19 @@ function roleDashboard(role: AppRole) {
   return "/parent";
 }
 
+function redirectWithSession(url: URL, sessionResponse: NextResponse) {
+  const redirectResponse = NextResponse.redirect(url);
+  sessionResponse.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+  sessionResponse.headers.forEach((value, key) => {
+    if (key.toLowerCase() !== "set-cookie") redirectResponse.headers.set(key, value);
+  });
+  return redirectResponse;
+}
+
+async function waitForAuthRetry() {
+  await new Promise((resolve) => setTimeout(resolve, 150));
+}
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
   const matched = protectedPrefixes.find((item) => request.nextUrl.pathname.startsWith(item.prefix));
@@ -26,43 +39,58 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+          Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value));
         },
       },
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let claimsResult = await supabase.auth.getClaims();
+  if (claimsResult.error) {
+    await waitForAuthRetry();
+    claimsResult = await supabase.auth.getClaims();
+  }
+  if (claimsResult.error) return response;
+  const userId = claimsResult.data?.claims.sub;
 
   if (!matched) return response;
 
-  if (!user) {
+  if (!userId) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    return redirectWithSession(url, response);
   }
 
-  const { data: profile } = await supabase
+  let profileResult = await supabase
     .from("profiles")
     .select("role,status")
-    .eq("auth_user_id", user.id)
+    .eq("auth_user_id", userId)
     .maybeSingle();
+  if (profileResult.error) {
+    await waitForAuthRetry();
+    profileResult = await supabase
+      .from("profiles")
+      .select("role,status")
+      .eq("auth_user_id", userId)
+      .maybeSingle();
+  }
+  if (profileResult.error) return response;
+  const profile = profileResult.data;
 
   if (!profile || profile.status !== "active") {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("error", "Tài khoản không còn hoạt động");
-    return NextResponse.redirect(url);
+    return redirectWithSession(url, response);
   }
 
   if (profile.role !== matched.role) {
-    return NextResponse.redirect(new URL(roleDashboard(profile.role as AppRole), request.url));
+    return redirectWithSession(new URL(roleDashboard(profile.role as AppRole), request.url), response);
   }
 
   return response;
