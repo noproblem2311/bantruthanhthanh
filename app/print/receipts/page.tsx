@@ -243,7 +243,6 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
   await requireRole("admin");
   const params = await searchParams;
   const source = params.source === "manual" ? "manual" : params.source === "blank" ? "blank" : "history";
-  const paperSize = params.paper === "a5" ? "a5" : "a4";
   const supabase = await createClient();
   let title = "Phiếu thu";
   let receipts: Receipt[] = [];
@@ -278,14 +277,12 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
   }
 
   return (
-    <main className="receipt-page" data-paper={paperSize}>
-      <ReceiptPrintToolbar paperSize={paperSize} />
+    <main className="receipt-page">
+      <ReceiptPrintToolbar />
       <div className="receipt-wrap">
         <div className="no-print mb-4">
           <h2 className="text-xl font-semibold">{title}</h2>
-          <p className="text-sm text-muted-foreground">
-            {receipts.length} phiếu · {paperSize === "a4" ? "2 phiếu / trang A4" : "1 phiếu / trang A5"}
-          </p>
+          <p className="text-sm text-muted-foreground">{receipts.length} phiếu · 1 phiếu / trang A5</p>
         </div>
         {receipts.length > 0 ? (
           <div className="receipt-sheets">
@@ -300,7 +297,7 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
 
       <style>{`
         @page {
-          size: ${paperSize === "a5" ? "A5" : "A4"} portrait;
+          size: A5 portrait;
           margin: 10mm;
         }
 
@@ -311,7 +308,7 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
         }
 
         .receipt-wrap {
-          width: min(210mm, calc(100% - 24px));
+          width: min(148mm, calc(100% - 24px));
           margin: 0 auto;
           padding: 16px 0 32px;
         }
@@ -323,9 +320,11 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
 
         .receipt-card {
           display: flex;
-          min-height: 136mm;
+          min-height: 190mm;
           break-inside: avoid;
           page-break-inside: avoid;
+          page-break-after: always;
+          break-after: page;
           flex-direction: column;
           border: 1px solid #111827;
           background: white;
@@ -333,19 +332,9 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
           font-size: 12px;
         }
 
-        .receipt-card:nth-child(2n) {
-          page-break-after: always;
-          break-after: page;
-        }
-
-        .receipt-page[data-paper="a5"] .receipt-wrap {
-          width: min(148mm, calc(100% - 24px));
-        }
-
-        .receipt-page[data-paper="a5"] .receipt-card {
-          min-height: 190mm;
-          page-break-after: always;
-          break-after: page;
+        .receipt-card:last-child {
+          page-break-after: auto;
+          break-after: auto;
         }
 
         .receipt-head {
@@ -428,10 +417,6 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
         }
 
         .receipt-payment {
-          display: none;
-        }
-
-        .receipt-page[data-paper="a5"] .receipt-payment {
           margin-top: 10px;
           display: flex;
           align-items: center;
@@ -487,7 +472,7 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
           }
 
           .receipt-card {
-            min-height: ${paperSize === "a5" ? "190mm" : "136mm"};
+            min-height: 190mm;
             box-shadow: none;
           }
         }

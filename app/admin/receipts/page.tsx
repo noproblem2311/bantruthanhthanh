@@ -78,13 +78,6 @@ export default async function AdminReceiptsPage({ searchParams }: { searchParams
                     ))}
                   </Select>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="history-paper">Khổ giấy</Label>
-                  <Select id="history-paper" name="paper" defaultValue="a4">
-                    <option value="a4">A4 - 2 phiếu / trang</option>
-                    <option value="a5">A5 - 1 phiếu / trang</option>
-                  </Select>
-                </div>
                 <SubmitButton pendingText="Đang mở phiếu...">
                   <ReceiptText className="h-4 w-4" />
                   Mở phiếu / lưu PDF
@@ -119,7 +112,7 @@ export default async function AdminReceiptsPage({ searchParams }: { searchParams
                       <TD>{formatMoney(snapshot.billing_total, snapshot.currency)}</TD>
                       <TD>{formatVietnamDateTime(snapshot.captured_at)}</TD>
                       <TD>
-                        <ButtonLink href={`/print/receipts?source=history&snapshot_id=${snapshot.id}&paper=a4`} target="_blank" variant="outline" size="sm">
+                        <ButtonLink href={`/print/receipts?source=history&snapshot_id=${snapshot.id}`} target="_blank" variant="outline" size="sm">
                           <Eye className="h-4 w-4" />
                           Mở
                         </ButtonLink>
@@ -178,7 +171,7 @@ export default async function AdminReceiptsPage({ searchParams }: { searchParams
                       <TD>{batch.profiles?.full_name || batch.profiles?.email || "Admin"}</TD>
                       <TD>{formatVietnamDateTime(batch.created_at)}</TD>
                       <TD>
-                        <ButtonLink href={`/print/receipts?source=manual&batch_id=${batch.id}&paper=a4`} target="_blank" variant="outline" size="sm">
+                        <ButtonLink href={`/print/receipts?source=manual&batch_id=${batch.id}`} target="_blank" variant="outline" size="sm">
                           <History className="h-4 w-4" />
                           Mở
                         </ButtonLink>
@@ -209,13 +202,6 @@ export default async function AdminReceiptsPage({ searchParams }: { searchParams
                   <Label htmlFor="blank-count">Số phiếu trắng</Label>
                   <Input id="blank-count" name="count" type="number" min={1} max={100} defaultValue={20} required />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="blank-paper">Khổ giấy</Label>
-                  <Select id="blank-paper" name="paper" defaultValue="a4">
-                    <option value="a4">A4 - 2 phiếu / trang</option>
-                    <option value="a5">A5 - 1 phiếu / trang</option>
-                  </Select>
-                </div>
                 <SubmitButton pendingText="Đang mở phiếu trắng...">
                   <FileText className="h-4 w-4" />
                   Mở phiếu trắng / lưu PDF
@@ -230,8 +216,8 @@ export default async function AdminReceiptsPage({ searchParams }: { searchParams
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <p>Dùng cho học sinh mới chưa kịp nhập vào hệ thống hoặc chưa có đủ thông tin thu tiền.</p>
-              <p>Có thể chọn A4 để in 2 phiếu/trang hoặc A5 để mỗi tờ là 1 phiếu riêng.</p>
-              <ButtonLink href={`/print/receipts?source=blank&billing_year_month=${getYearMonth()}&count=20&paper=a4`} target="_blank" variant="outline">
+              <p>Tất cả phiếu được in khổ A5, mỗi phiếu trên một trang riêng.</p>
+              <ButtonLink href={`/print/receipts?source=blank&billing_year_month=${getYearMonth()}&count=20`} target="_blank" variant="outline">
                 <FileText className="h-4 w-4" />
                 Mở nhanh 20 phiếu
               </ButtonLink>
