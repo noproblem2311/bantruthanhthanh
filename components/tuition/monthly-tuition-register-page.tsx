@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, Download, Save } from "lucide-react";
+import { CalendarDays, ChevronLeft, Download, ExternalLink, Save } from "lucide-react";
 import { saveMonthlyTuitionRecordsAction } from "@/lib/actions/admin";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClientSearch } from "@/components/ui/client-search";
@@ -76,13 +76,24 @@ export async function MonthlyTuitionRegisterPage({
           <h2 className="text-2xl font-semibold">Sổ học phí tháng</h2>
           <p className="mt-1 text-sm text-muted-foreground">Theo dõi và cập nhật học phí cả tháng trong một bảng gọn.</p>
         </div>
-        <a
-          href={`/api/tuition/export?month=${billingYearMonth}`}
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border bg-white px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-muted/60"
-        >
-          <Download className="h-4 w-4" />
-          Xuất Excel
-        </a>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href={`/so-hoc-phi?month=${billingYearMonth}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border bg-white px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-muted/60"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Trang xem công khai
+          </a>
+          <a
+            href={`/api/tuition/export?month=${billingYearMonth}`}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border bg-white px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-muted/60"
+          >
+            <Download className="h-4 w-4" />
+            Xuất Excel
+          </a>
+        </div>
       </div>
 
       <Card>
