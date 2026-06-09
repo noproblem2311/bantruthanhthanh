@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getMonthBounds, getPreviousYearMonth, isSaturday, isSunday } from "@/lib/date";
+import { getDayOfWeek, getMonthBounds, getPreviousYearMonth, isSaturday, isSunday } from "@/lib/date";
 import { boardingPackageLabels } from "@/lib/labels";
 import { getStudentAttendanceStartDate } from "@/lib/student-attendance";
 import type { AttendanceRecord, BoardingPackageType, FeeSetting, Student } from "@/lib/types";
@@ -22,6 +22,40 @@ export function getPackageAmount(packageType: BoardingPackageType, feeSetting: F
   if (packageType === "three_days") return DEFAULT_THREE_DAYS_PACKAGE_AMOUNT;
   if (packageType === "morning_weekday") return DEFAULT_MORNING_WEEKDAY_PACKAGE_AMOUNT;
   return DEFAULT_FOUR_DAYS_PACKAGE_AMOUNT;
+}
+
+function getPackageBillingDays(yearMonth: string, packageType: BoardingPackageType) {
+  const { start, end } = getMonthBounds(yearMonth);
+  const dates: string[] = [];
+
+  for (let date = start; date < end; ) {
+    const dayOfWeek = getDayOfWeek(date);
+    if (dayOfWeek !== 0 && (packageType === "saturday" || dayOfWeek !== 6)) {
+      dates.push(date);
+    }
+
+    const current = new Date(`${date}T00:00:00Z`);
+    current.setUTCDate(current.getUTCDate() + 1);
+    date = current.toISOString().slice(0, 10);
+  }
+
+  return dates;
+}
+
+export function getProratedPackageAmount(student: Student, yearMonth: string, feeSetting: FeeSetting) {
+  const fullPackageAmount = getPackageAmount(student.boarding_package_type, feeSetting);
+  const attendanceStartDate = getStudentAttendanceStartDate(student);
+  const { start, end } = getMonthBounds(yearMonth);
+
+  if (attendanceStartDate < start || attendanceStartDate >= end || Number(attendanceStartDate.slice(8, 10)) <= 4) {
+    return attendanceStartDate >= end ? 0 : fullPackageAmount;
+  }
+
+  const billingDays = getPackageBillingDays(yearMonth, student.boarding_package_type);
+  const remainingDays = billingDays.filter((date) => date >= attendanceStartDate);
+  if (billingDays.length === 0) return fullPackageAmount;
+
+  return Math.round((fullPackageAmount * remainingDays.length) / billingDays.length / 1000) * 1000;
 }
 
 export type StudentMonthlyFee = {
@@ -50,14 +84,14 @@ export async function getFeeSetting(supabase: SupabaseLike, yearMonth: string) {
 
 export async function calculateMonthlyFee(supabase: SupabaseLike, student: Student, yearMonth: string) {
   const feesByMonth = await calculateMonthlyFeesForStudentsByMonths(supabase, [student], [yearMonth]);
-  return feesByMonth.get(student.id)?.get(yearMonth) ?? buildStudentMonthlyFee(student, [], null);
+  return feesByMonth.get(student.id)?.get(yearMonth) ?? buildStudentMonthlyFee(student, [], null, yearMonth);
 }
 
 export async function calculateMonthlyFeesForStudents(supabase: SupabaseLike, students: Student[], yearMonth: string) {
   const feesByMonth = await calculateMonthlyFeesForStudentsByMonths(supabase, students, [yearMonth]);
   const result = new Map<string, StudentMonthlyFee>();
   for (const student of students) {
-    result.set(student.id, feesByMonth.get(student.id)?.get(yearMonth) ?? buildStudentMonthlyFee(student, [], null));
+    result.set(student.id, feesByMonth.get(student.id)?.get(yearMonth) ?? buildStudentMonthlyFee(student, [], null, yearMonth));
   }
   return result;
 }
@@ -115,14 +149,19 @@ export async function calculateMonthlyFeesForStudentsByMonths(
       const studentRecords = (attendanceByStudent.get(student.id) || []).filter(
         (record) => record.attendance_date >= start && record.attendance_date < end,
       );
-      result.get(student.id)!.set(yearMonth, buildStudentMonthlyFee(student, studentRecords, feeSetting));
+      result.get(student.id)!.set(yearMonth, buildStudentMonthlyFee(student, studentRecords, feeSetting, yearMonth));
     }
   }
 
   return result;
 }
 
-export function buildStudentMonthlyFee(student: Student, records: AttendanceRecord[], feeSetting: FeeSetting | null): StudentMonthlyFee {
+export function buildStudentMonthlyFee(
+  student: Student,
+  records: AttendanceRecord[],
+  feeSetting: FeeSetting | null,
+  yearMonth: string,
+): StudentMonthlyFee {
   const attendanceStartDate = getStudentAttendanceStartDate(student);
   const billableRecords = records.filter((record) => record.attendance_date >= attendanceStartDate);
   const attendanceDates = billableRecords.filter((record) => record.status === "present").map((record) => record.attendance_date);
@@ -132,7 +171,7 @@ export function buildStudentMonthlyFee(student: Student, records: AttendanceReco
   const saturdayAttendanceDates = attendanceDates.filter(isSaturday);
   const chargedAbsentDates = excusedAbsentDates.filter((date) => !isSunday(date)).sort();
   const packageType = student.boarding_package_type ?? "weekday";
-  const packageAmount = feeSetting === null ? null : getPackageAmount(packageType, feeSetting);
+  const packageAmount = feeSetting === null ? null : getProratedPackageAmount(student, yearMonth, feeSetting);
   const absenceDeductionAmount = feeSetting === null ? null : (feeSetting.absence_deduction_amount ?? DEFAULT_ABSENCE_DEDUCTION_AMOUNT);
   const absenceDeductionTotal = absenceDeductionAmount === null ? null : chargedAbsentDates.length * absenceDeductionAmount;
 

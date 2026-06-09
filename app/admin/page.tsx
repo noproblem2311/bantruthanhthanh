@@ -73,6 +73,7 @@ export default async function AdminDashboardPage() {
           student,
           eligiblePreviousMonthAttendance.filter((record) => record.student_id === student.id),
           feeSetting as FeeSetting,
+          yearMonth,
         ),
       )
     : [];

@@ -28,7 +28,7 @@ import {
 } from "@/lib/validators/admin";
 import { normalizeUsername, slugify } from "@/lib/utils";
 import type { AttendanceRecord, FeeSetting, Parent, Student } from "@/lib/types";
-import { getPackageAmount } from "@/lib/fees";
+import { getProratedPackageAmount } from "@/lib/fees";
 
 export type CredentialActionState = {
   ok?: boolean;
@@ -480,7 +480,7 @@ export async function captureMonthlyHistoryAction(formData: FormData) {
   const absenceDeductionAmount = fee?.absence_deduction_amount ?? null;
   const rows = studentRows.map((student) => {
     const bucket = absencesByStudent.get(student.id) || emptyAbsenceBucket();
-    const packageAmount = fee ? getPackageAmount(student.boarding_package_type, fee) : null;
+    const packageAmount = fee ? getProratedPackageAmount(student, billingYearMonth, fee) : null;
     const billingAmount =
       packageAmount === null || absenceDeductionAmount === null
         ? null

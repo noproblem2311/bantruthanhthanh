@@ -49,6 +49,7 @@ export default async function ParentDashboardPage() {
           child,
           eligibleMonthlyAttendance.filter((record) => record.student_id === child.id),
           feeSetting as FeeSetting,
+          yearMonth,
         ),
       )
     : [];
