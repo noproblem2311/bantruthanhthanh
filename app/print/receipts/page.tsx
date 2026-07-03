@@ -61,6 +61,24 @@ function foodCreditLabel(amountPerDay = DEFAULT_FOOD_CREDIT_PER_DAY) {
   return `Tiền ăn thừa tháng trước (${formatShortCurrency(amountPerDay)}/ngày)`;
 }
 
+function parseMoneyText(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return null;
+  const amount = Number(digits);
+  return Number.isFinite(amount) ? amount : null;
+}
+
+function getManualFoodCreditLine(note: string | null): ReceiptLine {
+  const match = note?.match(/tiền ăn thừa tháng\s+(\d{1,2})(?:\/\d{4})?.*?([\d.]+)\s*đ/i);
+  const amount = match ? parseMoneyText(match[2]) : null;
+  if (!match || amount === null || amount <= 0) {
+    return { label: foodCreditLabel(), amount: 0 };
+  }
+
+  const month = match[1].padStart(2, "0");
+  return { label: `Tiền ăn thừa tháng ${month}`, amount: -amount };
+}
+
 function debtLineLabel(yearMonth: string) {
   return `Nợ ${getMonthLabel(yearMonth)}`;
 }
@@ -199,7 +217,7 @@ function buildManualReceipts(batch: ReceiptBatch, rows: ReceiptItem[]) {
     lines.push(
       { label: "Tiền học Tin học", amount: row.computer_amount },
       { label: "Tiền học Tiếng Anh", amount: row.english_amount },
-      { label: foodCreditLabel(), amount: 0 },
+      getManualFoodCreditLine(row.note),
     );
 
     if (row.other_amount !== 0) {
