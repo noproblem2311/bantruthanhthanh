@@ -44,34 +44,11 @@ async function getBillingAmountsByStudentMonth(
     return amounts;
   }
 
-  const studentIds = students.map((student) => student.id);
   const uniqueMonths = [...new Set(yearMonths)];
-  const { data: snapshots } = await supabase
-    .from("monthly_history_snapshots")
-    .select("id, billing_year_month")
-    .in("billing_year_month", uniqueMonths);
-
-  const snapshotIdByMonth = new Map((snapshots || []).map((snapshot) => [snapshot.billing_year_month, snapshot.id]));
-
-  if (snapshotIdByMonth.size > 0) {
-    const { data: historyRows } = await supabase
-      .from("monthly_history_students")
-      .select("snapshot_id, student_id, billing_amount")
-      .in("snapshot_id", [...snapshotIdByMonth.values()])
-      .in("student_id", studentIds);
-
-    for (const row of historyRows || []) {
-      const billingYearMonth = [...snapshotIdByMonth.entries()].find(([, id]) => id === row.snapshot_id)?.[0];
-      if (!billingYearMonth) continue;
-      amounts.set(amountKey(row.student_id, billingYearMonth), row.billing_amount);
-    }
-  }
-
   const calculated = await calculateMonthlyFeesForStudentsByMonths(supabase, students, uniqueMonths);
   for (const student of students) {
     for (const billingYearMonth of uniqueMonths) {
       const key = amountKey(student.id, billingYearMonth);
-      if (amounts.has(key)) continue;
       const fee = calculated.get(student.id)?.get(billingYearMonth);
       amounts.set(key, fee?.total_amount ?? null);
     }
