@@ -27,6 +27,13 @@ type Receipt = {
   note: string | null;
 };
 
+type HistoryDebtLine = {
+  billingYearMonth: string;
+  amount: number;
+};
+
+type HistoryDebtLinesByStudent = Map<string, HistoryDebtLine[]>;
+
 function getMonthLabel(yearMonth: string) {
   const [year, month] = yearMonth.split("-");
   return `tháng ${month}/${year}`;
@@ -54,16 +61,90 @@ function foodCreditLabel(amountPerDay = DEFAULT_FOOD_CREDIT_PER_DAY) {
   return `Tiền ăn thừa tháng trước (${formatShortCurrency(amountPerDay)}/ngày)`;
 }
 
+function debtLineLabel(yearMonth: string) {
+  return `Nợ ${getMonthLabel(yearMonth)}`;
+}
+
 const zeroFeeLines: ReceiptLine[] = [
   { label: "Tiền học Tin học", amount: 0 },
   { label: "Tiền học Tiếng Anh", amount: 0 },
   { label: foodCreditLabel(), amount: 0 },
 ];
 
-function buildHistoryReceipts(snapshot: MonthlyHistorySnapshot, rows: MonthlyHistoryStudent[]) {
+async function getHistoryDebtLinesByStudent(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  snapshot: MonthlyHistorySnapshot,
+  rows: MonthlyHistoryStudent[],
+): Promise<HistoryDebtLinesByStudent> {
+  const studentIds = rows
+    .map((row) => row.student_id)
+    .filter((studentId): studentId is string => Boolean(studentId));
+
+  if (studentIds.length === 0) return new Map();
+
+  const { data: unpaidRecords } = await supabase
+    .from("monthly_tuition_records")
+    .select("student_id,billing_year_month")
+    .in("student_id", studentIds)
+    .eq("is_paid", false)
+    .lt("billing_year_month", snapshot.billing_year_month)
+    .order("billing_year_month", { ascending: true });
+
+  const debtRecords = (unpaidRecords || []) as Array<{ student_id: string; billing_year_month: string }>;
+  const debtMonths = [...new Set(debtRecords.map((record) => record.billing_year_month))];
+  if (debtMonths.length === 0) return new Map();
+
+  const { data: snapshots } = await supabase
+    .from("monthly_history_snapshots")
+    .select("id,billing_year_month,captured_at")
+    .in("billing_year_month", debtMonths)
+    .order("captured_at", { ascending: false });
+
+  const latestSnapshotIdByMonth = new Map<string, string>();
+  for (const row of (snapshots || []) as Array<{ id: string; billing_year_month: string }>) {
+    if (!latestSnapshotIdByMonth.has(row.billing_year_month)) {
+      latestSnapshotIdByMonth.set(row.billing_year_month, row.id);
+    }
+  }
+
+  const snapshotIds = [...latestSnapshotIdByMonth.values()];
+  if (snapshotIds.length === 0) return new Map();
+
+  const monthBySnapshotId = new Map([...latestSnapshotIdByMonth.entries()].map(([month, snapshotId]) => [snapshotId, month]));
+  const { data: historyRows } = await supabase
+    .from("monthly_history_students")
+    .select("snapshot_id,student_id,billing_amount")
+    .in("snapshot_id", snapshotIds)
+    .in("student_id", studentIds);
+
+  const amountByStudentMonth = new Map<string, number>();
+  for (const row of (historyRows || []) as Array<{ snapshot_id: string; student_id: string; billing_amount: number | null }>) {
+    const month = monthBySnapshotId.get(row.snapshot_id);
+    if (!month || row.billing_amount === null || row.billing_amount <= 0) continue;
+    amountByStudentMonth.set(`${row.student_id}:${month}`, row.billing_amount);
+  }
+
+  const linesByStudent = new Map<string, HistoryDebtLine[]>();
+  for (const record of debtRecords) {
+    const amount = amountByStudentMonth.get(`${record.student_id}:${record.billing_year_month}`);
+    if (!amount) continue;
+    const lines = linesByStudent.get(record.student_id) || [];
+    lines.push({ billingYearMonth: record.billing_year_month, amount });
+    linesByStudent.set(record.student_id, lines);
+  }
+
+  return linesByStudent;
+}
+
+function buildHistoryReceipts(
+  snapshot: MonthlyHistorySnapshot,
+  rows: MonthlyHistoryStudent[],
+  debtLinesByStudent: HistoryDebtLinesByStudent = new Map(),
+) {
   return rows.map((row, index): Receipt => {
     const packageAmount = row.package_amount || 0;
     const deductionTotal = (row.excused_deduction_amount || 0) * row.excused_absent_count;
+    const debtLines = row.student_id ? debtLinesByStudent.get(row.student_id) || [] : [];
     const lines: ReceiptLine[] = [];
     if (packageAmount > 0) {
       lines.push({
@@ -83,9 +164,16 @@ function buildHistoryReceipts(snapshot: MonthlyHistorySnapshot, rows: MonthlyHis
     if (lines.length === 0 && row.billing_amount !== null) {
       lines.push({ label: "Số tiền bán trú", amount: row.billing_amount });
     }
+    for (const debt of debtLines) {
+      lines.push({ label: debtLineLabel(debt.billingYearMonth), amount: debt.amount });
+    }
     lines.push(...zeroFeeLines);
 
     const unexcusedNote = row.unexcused_absent_count > 0 ? `Nghỉ không phép ${row.unexcused_absent_count} buổi.` : "";
+    const debtNote =
+      debtLines.length > 0
+        ? `Đã cộng nợ cũ: ${debtLines.map((debt) => `${getMonthLabel(debt.billingYearMonth)} ${formatCurrency(debt.amount)}`).join(", ")}.`
+        : "";
 
     return {
       number: index + 1,
@@ -95,8 +183,8 @@ function buildHistoryReceipts(snapshot: MonthlyHistorySnapshot, rows: MonthlyHis
       periodLabel: "Cả tháng",
       studiesSaturday: row.boarding_package_type === "saturday",
       lines,
-      total: row.billing_amount ?? getReceiptTotal(lines),
-      note: [unexcusedNote, snapshot.note].filter(Boolean).join(" ") || null,
+      total: getReceiptTotal(lines),
+      note: [unexcusedNote, debtNote, snapshot.note].filter(Boolean).join(" ") || null,
     };
   });
 }
@@ -225,6 +313,7 @@ function ReceiptCard({ receipt }: { receipt: Receipt }) {
         <p>
           <strong>Ghi chú:</strong> - Phụ huynh nộp đủ tiền vào ngày 9 hằng tháng.
         </p>
+        {receipt.note ? <p>- {receipt.note}</p> : null}
         <p>- Hai anh chị em ruột được giảm 50.000đ.</p>
         <p>- Phụ huynh có thắc mắc gì thì gặp trực tiếp cô Lan hoặc điện thoại số 0392333013 (chủ cơ sở).</p>
       </div>
@@ -267,7 +356,10 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
 
     if (snapshot) {
       title = `Phiếu thu ${snapshot.billing_year_month}`;
-      receipts = buildHistoryReceipts(snapshot as MonthlyHistorySnapshot, (students || []) as MonthlyHistoryStudent[]);
+      const historySnapshot = snapshot as MonthlyHistorySnapshot;
+      const historyStudents = (students || []) as MonthlyHistoryStudent[];
+      const debtLinesByStudent = await getHistoryDebtLinesByStudent(supabase, historySnapshot, historyStudents);
+      receipts = buildHistoryReceipts(historySnapshot, historyStudents, debtLinesByStudent);
     }
   } else {
     const batchId = typeof params.batch_id === "string" ? params.batch_id : "";
