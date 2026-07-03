@@ -2,10 +2,11 @@ import Image from "next/image";
 import { ReceiptPrintToolbar } from "@/components/receipts/print-toolbar";
 import { createClient } from "@/lib/supabase/server";
 import { formatVietnamDate, getYearMonth } from "@/lib/date";
+import { calculateMonthlyFeesForStudentsByMonths } from "@/lib/fees";
 import { requireRole } from "@/lib/permissions";
 import { formatCurrency } from "@/lib/utils";
 import { boardingPackageLabels } from "@/lib/labels";
-import type { BoardingPackageType, MonthlyHistorySnapshot, MonthlyHistoryStudent, ReceiptBatch, ReceiptItem } from "@/lib/types";
+import type { BoardingPackageType, MonthlyHistorySnapshot, MonthlyHistoryStudent, ReceiptBatch, ReceiptItem, Student } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const DEFAULT_FOOD_CREDIT_PER_DAY = 18000;
@@ -48,17 +49,6 @@ function getReceiptTotal(lines: ReceiptLine[]) {
   return lines.reduce((sum, line) => sum + (line.amount || 0), 0);
 }
 
-function getManualReceiptItemTotal(row: Pick<ReceiptItem, "boarding_amount" | "saturday_amount" | "computer_amount" | "english_amount" | "other_amount" | "note">) {
-  return (
-    row.boarding_amount +
-    row.saturday_amount +
-    row.computer_amount +
-    row.english_amount +
-    (getManualFoodCreditLine(row.note).amount || 0) +
-    row.other_amount
-  );
-}
-
 function formatReceiptAmount(value: number | null) {
   return value === null ? "........................" : formatSignedCurrency(value);
 }
@@ -77,17 +67,6 @@ function parseMoneyText(value: string) {
   if (!digits) return null;
   const amount = Number(digits);
   return Number.isFinite(amount) ? amount : null;
-}
-
-function normalizeReceiptText(value: string | null | undefined) {
-  return (value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function getManualFoodCreditLine(note: string | null): ReceiptLine {
@@ -134,85 +113,13 @@ async function getHistoryDebtLinesByStudent(
   const debtMonths = [...new Set(debtRecords.map((record) => record.billing_year_month))];
   if (debtMonths.length === 0) return new Map();
 
-  const historyRowByStudentId = new Map(rows.filter((row) => row.student_id).map((row) => [row.student_id!, row]));
-  const manualAmountByStudentMonth = new Map<string, number>();
-  const { data: manualBatches } = await supabase
-    .from("receipt_batches")
-    .select("id,billing_year_month,created_at")
-    .in("billing_year_month", debtMonths)
-    .order("created_at", { ascending: false });
-
-  const manualBatchRows = (manualBatches || []) as Array<{ id: string; billing_year_month: string }>;
-  if (manualBatchRows.length > 0) {
-    const monthByBatchId = new Map(manualBatchRows.map((batch) => [batch.id, batch.billing_year_month]));
-    const { data: manualItems } = await supabase
-      .from("receipt_items")
-      .select("batch_id,student_name,class_name,boarding_amount,saturday_amount,computer_amount,english_amount,other_amount,note")
-      .in(
-        "batch_id",
-        manualBatchRows.map((batch) => batch.id),
-      )
-      .order("sort_order", { ascending: true });
-
-    for (const item of (manualItems || []) as Array<
-      Pick<ReceiptItem, "student_name" | "class_name" | "boarding_amount" | "saturday_amount" | "computer_amount" | "english_amount" | "other_amount" | "note"> & {
-        batch_id: string;
-      }
-    >) {
-      const month = monthByBatchId.get(item.batch_id);
-      if (!month) continue;
-
-      const matchingRows = [...historyRowByStudentId.values()].filter((row) => {
-        if (normalizeReceiptText(row.student_full_name) !== normalizeReceiptText(item.student_name)) return false;
-        if (!item.class_name) return true;
-        return normalizeReceiptText(row.class_name) === normalizeReceiptText(item.class_name);
-      });
-
-      for (const row of matchingRows) {
-        if (!row.student_id) continue;
-        const key = `${row.student_id}:${month}`;
-        if (manualAmountByStudentMonth.has(key)) continue;
-        const amount = getManualReceiptItemTotal(item);
-        if (amount > 0) manualAmountByStudentMonth.set(key, amount);
-      }
-    }
-  }
-
-  const { data: snapshots } = await supabase
-    .from("monthly_history_snapshots")
-    .select("id,billing_year_month,captured_at")
-    .in("billing_year_month", debtMonths)
-    .order("captured_at", { ascending: false });
-
-  const latestSnapshotIdByMonth = new Map<string, string>();
-  for (const row of (snapshots || []) as Array<{ id: string; billing_year_month: string }>) {
-    if (!latestSnapshotIdByMonth.has(row.billing_year_month)) {
-      latestSnapshotIdByMonth.set(row.billing_year_month, row.id);
-    }
-  }
-
-  const snapshotIds = [...latestSnapshotIdByMonth.values()];
-  if (snapshotIds.length === 0) return new Map();
-
-  const monthBySnapshotId = new Map([...latestSnapshotIdByMonth.entries()].map(([month, snapshotId]) => [snapshotId, month]));
-  const { data: historyRows } = await supabase
-    .from("monthly_history_students")
-    .select("snapshot_id,student_id,billing_amount")
-    .in("snapshot_id", snapshotIds)
-    .in("student_id", studentIds);
-
-  const amountByStudentMonth = new Map<string, number>();
-  for (const row of (historyRows || []) as Array<{ snapshot_id: string; student_id: string; billing_amount: number | null }>) {
-    const month = monthBySnapshotId.get(row.snapshot_id);
-    if (!month || row.billing_amount === null || row.billing_amount <= 0) continue;
-    amountByStudentMonth.set(`${row.student_id}:${month}`, row.billing_amount);
-  }
+  const { data: currentStudents } = await supabase.from("students").select("*").in("id", studentIds);
+  const feesByStudentMonth = await calculateMonthlyFeesForStudentsByMonths(supabase, (currentStudents || []) as Student[], debtMonths);
 
   const linesByStudent = new Map<string, HistoryDebtLine[]>();
   for (const record of debtRecords) {
-    const key = `${record.student_id}:${record.billing_year_month}`;
-    const amount = manualAmountByStudentMonth.get(key) ?? amountByStudentMonth.get(key);
-    if (!amount) continue;
+    const amount = feesByStudentMonth.get(record.student_id)?.get(record.billing_year_month)?.total_amount;
+    if (amount === null || amount === undefined || amount <= 0) continue;
     const lines = linesByStudent.get(record.student_id) || [];
     lines.push({ billingYearMonth: record.billing_year_month, amount });
     linesByStudent.set(record.student_id, lines);
