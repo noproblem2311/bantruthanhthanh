@@ -398,7 +398,7 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
         }
 
         .receipt-wrap {
-          width: min(148mm, calc(100% - 24px));
+          width: min(128mm, calc(100% - 24px));
           margin: 0 auto;
           padding: 16px 0 32px;
         }
@@ -410,7 +410,9 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
 
         .receipt-card {
           display: flex;
-          min-height: 190mm;
+          width: 128mm;
+          height: 190mm;
+          overflow: hidden;
           break-inside: avoid;
           page-break-inside: avoid;
           page-break-after: always;
@@ -470,16 +472,16 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
         }
 
         .receipt-table {
-          margin-top: 10px;
+          margin-top: 8px;
           width: 100%;
           border-collapse: collapse;
-          font-size: 12px;
+          font-size: 11.5px;
         }
 
         .receipt-table th,
         .receipt-table td {
           border: 1px solid #1f2937;
-          padding: 5px 6px;
+          padding: 4px 5px;
           vertical-align: top;
         }
 
@@ -500,24 +502,24 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
         }
 
         .receipt-note {
-          margin-top: 8px;
+          margin-top: 6px;
           font-size: 11px;
           font-style: italic;
-          line-height: 1.35;
+          line-height: 1.25;
         }
 
         .receipt-payment {
-          margin-top: 10px;
+          margin-top: 8px;
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
           border: 1px dashed #94a3b8;
-          padding: 8px;
+          padding: 6px;
         }
 
         .receipt-payment-qr {
-          height: 34mm;
-          width: 34mm;
+          height: 30mm;
+          width: 30mm;
           flex: 0 0 auto;
           object-fit: contain;
         }
@@ -533,7 +535,7 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
           display: flex;
           justify-content: space-between;
           gap: 16px;
-          padding-top: 12px;
+          padding-top: 8px;
         }
 
         .receipt-footer > div {
@@ -556,13 +558,14 @@ export default async function ReceiptPrintPage({ searchParams }: { searchParams:
           }
 
           .receipt-wrap {
-            width: auto;
+            width: 128mm;
             margin: 0;
             padding: 0;
           }
 
           .receipt-card {
-            min-height: 190mm;
+            width: 128mm;
+            height: 190mm;
             box-shadow: none;
           }
         }
